@@ -5,3 +5,6 @@ target/
 *.pdb
 .git/
 
+.cargo-task/target/
+.cargo-task/gen-bindings/target/
+
