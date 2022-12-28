@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+# graph
+petgraph = "0.6.2"
+
+# interactive CLI
+indicatif = "0.17.2"
+
 # telemetry
 log = "0.4.17"
 color-eyre = "0.6.0"
@@ -18,9 +24,12 @@ lazy_static = "1.4.0"
 # async
 tokio = { version = "1.23.0", features = ["full"] }
 
-# interactive CLI
-indicatif = "0.17.2"
-
 # dev tools
 itertools = "0.10.5"
 chrono = "0.4.23"
+
+# testing
+[dev-dependencies]
+env_logger = "0.9.0"
+test-log = "0.2.11"
+pretty_assertions = "1"
