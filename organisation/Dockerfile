@@ -7,7 +7,7 @@ WORKDIR /usr/src/organisation
 
 # build dependencies
 COPY Cargo.toml Cargo.lock ./
-RUN cargo build
+RUN cargo build --release
 
 # intall app
 COPY src ./src

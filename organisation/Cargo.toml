@@ -4,3 +4,23 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+# telemetry
+log = "0.4.17"
+color-eyre = "0.6.0"
+sensible-env-logger = "0.3.1"
+
+# configuration
+toml = "0.5.2"
+serde = "1.0.136"
+serde_derive = "1.0.136"
+lazy_static = "1.4.0"
+
+# async
+tokio = { version = "1.23.0", features = ["full"] }
+
+# interactive CLI
+indicatif = "0.17.2"
+
+# dev tools
+itertools = "0.10.5"
+chrono = "0.4.23"
