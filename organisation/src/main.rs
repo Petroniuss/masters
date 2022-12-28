@@ -1,7 +1,7 @@
 mod permission_graph;
 
 fn main() {
-    println!("Master's!");
+    println!("Master's");
 }
 
 // Organisation should be both an HTTP server so that other organisations can communicate with it
