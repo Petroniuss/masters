@@ -4,11 +4,14 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+# ethereum
+ethers = { version = "1.0.0", features = ["legacy"] }
+ethers-solc = { version = "1.0.0" }
+ethers-contract = { version = "1.0.0" }
+ethers-providers = { version = "1.0.0" }
+
 # graph
 petgraph = "0.6.2"
-
-# interactive CLI
-indicatif = "0.17.2"
 
 # telemetry
 log = "0.4.17"
