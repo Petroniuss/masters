@@ -18,7 +18,21 @@ todo install truffle, solidity, ganache.
 ```
 
 ### organisation
-todo install rust.
+todo: dev dependencies - install rust, cargo task.
+
+To generate rust bindings for the smart contracts, run:
 ```bash
-cargo install -f cargo-task
+cargo task gen-bindings 
 ```
+
+To run the organisation, run:
+```bash
+cargo run --release
+```
+
+To run unit tests, run:
+```bash
+cargo test -- --nocapture
+```
+
+### Miscellaneous

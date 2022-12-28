@@ -112,21 +112,29 @@ mod tests {
             signature: None,
         }));
 
-        g.add_edge(user_idx, group_idx, Permission::SimpleRWX(RWX {
-            read: true,
-            write: true,
-            execute: true,
-            organisation: org1.to_string(),
-            signature: None,
-        }));
+        g.add_edge(
+            user_idx,
+            group_idx,
+            Permission::SimpleRWX(RWX {
+                read: true,
+                write: true,
+                execute: true,
+                organisation: org1.to_string(),
+                signature: None,
+            }),
+        );
 
-        g.add_edge(group_idx, space_idx, Permission::SimpleRWX(RWX {
-            read: true,
-            write: true,
-            execute: true,
-            organisation: org1.to_string(),
-            signature: None,
-        }));
+        g.add_edge(
+            group_idx,
+            space_idx,
+            Permission::SimpleRWX(RWX {
+                read: true,
+                write: true,
+                execute: true,
+                organisation: org1.to_string(),
+                signature: None,
+            }),
+        );
 
         info!("{:?}", g.to_dot());
     }
