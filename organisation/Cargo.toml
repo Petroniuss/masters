@@ -6,9 +6,10 @@ edition = "2021"
 [dependencies]
 # ethereum
 ethers = { version = "1.0.0", features = ["legacy"] }
-ethers-solc = { version = "1.0.0" }
 ethers-contract = { version = "1.0.0" }
-ethers-providers = { version = "1.0.0" }
+# todo: I don't know if I need this, look at it after implementing calling the contract.
+# ethers-solc = { version = "1.0.0" }
+# ethers-providers = { version = "1.0.0" }
 
 # graph
 petgraph = "0.6.2"
