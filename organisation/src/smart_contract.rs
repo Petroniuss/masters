@@ -1,59 +1,67 @@
 use crate::bindings::PermissionGraph;
+use async_trait::async_trait;
 use color_eyre::Result;
-use ethers::providers::{Http, Provider};
+
+use ethers::middleware::gas_oracle::{EthGasStation, GasOracleMiddleware};
+use ethers::middleware::NonceManagerMiddleware;
+use ethers::middleware::SignerMiddleware;
+
+use ethers::providers::{Http, Middleware, Provider};
 use ethers::types::Address;
-use ethers_signers::{LocalWallet, Signer, Wallet};
+use ethers_signers::{LocalWallet, Signer};
+use log::info;
 use std::convert::TryFrom;
 use std::str::FromStr;
 use std::sync::Arc;
-use async_trait::async_trait;
-use ethers::contract::builders::ContractCall;
-use ethers::core::k256;
-use ethers::core::k256::ecdsa::SigningKey;
-use ethers::middleware::gas_oracle::{EthGasStation, GasOracleMiddleware};
-use ethers::middleware::SignerMiddleware;
-use ethers::middleware::NonceManagerMiddleware;
-use log::{info, Log};
+
+type EthersClient = GasOracleMiddleware<
+    NonceManagerMiddleware<SignerMiddleware<Provider<Http>, LocalWallet>>,
+    EthGasStation,
+>;
+type SmartContractClient = PermissionGraph<EthersClient>;
 
 #[async_trait]
-trait PermissionGraphSmartContract {
+trait SmartContractService {
     async fn fetch_current_graph_version(&self) -> Result<String>;
 
     async fn propose_new_graph_version(&self, graph_ipfs_pointer: &str) -> Result<()>;
 
-    // todo:
-    // add functions to propose a new version of the graph
-    // listen for events coming from the smart contract.
+    // todo: listen for events coming from the smart contract.
 }
 
-type Client = NonceManagerMiddleware<SignerMiddleware<Provider<Http>, LocalWallet>>;
-type SmartContractClient = PermissionGraph<Client>;
-
-struct PermissionGraphSmartContractImpl {
+#[allow(dead_code)]
+struct SmartContractServiceImpl {
     smart_contract_address: Address,
     organisation_wallet: LocalWallet,
     organisation_name: String,
-    client: Arc<Client>,
+    client: Arc<EthersClient>,
     smart_contract_client: SmartContractClient,
 }
 
-impl PermissionGraphSmartContractImpl {
-    fn new_for_local_setup() -> Result<impl PermissionGraphSmartContract> {
-        let organisation_wallet =
-            "db1969650ae7c48058e828fd7dfabe337d1047c86c047a12240c51c74be27ba9"
-                .parse::<LocalWallet>()?;
+static ORGANISATION_NAME: &'static str = "ORG_A";
+static WALLET_PRIVATE_KEY: &'static str =
+    "db1969650ae7c48058e828fd7dfabe337d1047c86c047a12240c51c74be27ba9";
+static SMART_CONTRACT_ADDRESS: &'static str = "0xad70d5f3490a793b308182f6a0e59ba16298f1ef";
 
-        let smart_contract_address =
-            Address::from_str("0xad70d5f3490a793b308182f6a0e59ba16298f1ef")?;
+impl SmartContractServiceImpl {
+    #[allow(dead_code)]
+    async fn new_for_local_setup() -> Result<impl SmartContractService> {
+        let provider = SmartContractServiceImpl::create_local_http_provider()?;
 
-        let client = PermissionGraphSmartContractImpl::create_client(
-            organisation_wallet.clone(),
-        )?;
+        let chain_id = provider.get_chainid().await?;
 
-        let smart_contract_client =
-            PermissionGraph::new(smart_contract_address, client.clone());
+        let organisation_wallet = WALLET_PRIVATE_KEY
+            .parse::<LocalWallet>()?
+            .with_chain_id(chain_id.as_u64());
 
-        let organisation_name = "ORG_TEST_A".to_string();
+        let smart_contract_address = Address::from_str(SMART_CONTRACT_ADDRESS)?;
+
+        let client =
+            SmartContractServiceImpl::create_ethers_client(provider, organisation_wallet.clone())?;
+
+        let smart_contract_client = PermissionGraph::new(smart_contract_address, client.clone());
+
+        let organisation_name = ORGANISATION_NAME.to_string();
 
         Ok(Self {
             smart_contract_address,
@@ -64,129 +72,91 @@ impl PermissionGraphSmartContractImpl {
         })
     }
 
-    fn create_client(wallet: LocalWallet) -> Result<Arc<Client>> {
-        let provider =
-            Provider::<Http>::try_from("http://localhost:8545")?;
+    fn create_local_http_provider() -> Result<Provider<Http>> {
+        let provider = Provider::<Http>::try_from("http://localhost:8545")?;
+        Ok(provider)
+    }
 
-        let provider = SignerMiddleware::new(
-            provider.clone(), wallet.clone()
-        );
+    fn create_ethers_client(
+        provider: Provider<Http>,
+        wallet: LocalWallet,
+    ) -> Result<Arc<EthersClient>> {
+        let provider = SignerMiddleware::new(provider.clone(), wallet.clone());
 
-        let provider =
-            NonceManagerMiddleware::new(provider.clone(), wallet.address());
+        let provider = NonceManagerMiddleware::new(provider.clone(), wallet.address());
 
-        let client =
-            Arc::new(provider);
+        let gas_oracle = EthGasStation::new(None);
+        let provider = GasOracleMiddleware::new(provider, gas_oracle);
+
+        let client = Arc::new(provider);
 
         Ok(client)
     }
 }
 
 #[async_trait]
-impl PermissionGraphSmartContract for PermissionGraphSmartContractImpl {
+impl SmartContractService for SmartContractServiceImpl {
     async fn fetch_current_graph_version(&self) -> Result<String> {
-        let result = self.smart_contract_client
+        let result = self
+            .smart_contract_client
             .get_latest_permission_graph_ipfs_pointer()
             .call()
             .await?;
+        info!("Fetched current graph version: {}", result);
 
         Ok(result)
     }
 
     async fn propose_new_graph_version(&self, graph_ipfs_pointer: &str) -> Result<()> {
-        let mut call: ContractCall<Client, ()> = self.smart_contract_client
-            .propose_permission_graph_change(
-                self.organisation_name.clone(),
-                graph_ipfs_pointer.to_string()
-            );
+        info!("Proposing new graph version: {:?}", graph_ipfs_pointer);
+        let tx = self.smart_contract_client.propose_permission_graph_change(
+            self.organisation_name.clone(),
+            graph_ipfs_pointer.to_string(),
+        );
 
-        call.tx.set_from(self.organisation_wallet.address().clone());
+        let pending_tx = tx.send().await?;
 
-        let pending_tx = call
-            .send().await?;
-        info!("pending: {:?}", pending_tx);
+        info!("pending_tx: {:?}", pending_tx);
+        let receipt = pending_tx
+            .confirmations(1)
+            .await?
+            .expect("transaction should have been mined");
 
-        let receipt = pending_tx.confirmations(6).await?;
-        info!("ala: {:?}", receipt);
-
+        info!("tx_receipt: {:?}", receipt);
         Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-    use std::sync::Arc;
-    use log::info;
-    use test_log::test;
+    use crate::smart_contract::SmartContractService;
+    use crate::smart_contract::SmartContractServiceImpl;
+
     use color_eyre::Result;
-    use ethers::providers::{Http, Middleware, Provider};
-    use ethers::types::Address;
-    use ethers_signers::{LocalWallet, Signer};
+    use log::info;
     use pretty_assertions::assert_eq;
-    use crate::bindings::PermissionGraph;
-    use crate::smart_contract::PermissionGraphSmartContractImpl;
-    use crate::smart_contract::PermissionGraphSmartContract;
+    use test_log::test;
 
     #[test(tokio::test)]
-    async fn dummy() -> Result<()>{
-        let provider =
-            Provider::<Http>::try_from("http://localhost:8545")?;
-
-        let chain_id = provider.get_chainid().await?;
-
-        let wallet =
-            "09301bfd6a72ac78aec018637765fe0e8e4159372698a23a296deada8471c70f"
-                .parse::<LocalWallet>()?
-                .with_chain_id(chain_id.as_u64());
-
-        let smart_contract_address =
-            Address::from_str("0xad70d5f3490a793b308182f6a0e59ba16298f1ef")?;
-
-        let client = PermissionGraphSmartContractImpl::create_client(
-            wallet.clone(),
-        )?;
-
-        let smart_contract_client = PermissionGraph::new(smart_contract_address, client.clone()
-        );
-
-        let mut call = smart_contract_client.propose_permission_graph_change(
-            "a".to_string(), "b".to_string()
-        );
-        /// works! omg!
-        call.tx.set_gas(10000000);
-        call.tx.set_gas_price(10000000000 as i64);
-
-        // let signature = wallet.sign_transaction(&mut call.tx).await?;
-        //
-        // let pending_tx = client.send_raw_transaction(
-        //     call.tx.rlp_signed(&signature)
-        // ).await?;
-        //
-
-        call.send().await?;
-
-        Ok(())
-    }
-
-    #[test(tokio::test)]
-    async fn example() -> Result<()> {
+    #[ignore]
+    async fn smart_contract_service_integration_test() -> Result<()> {
         let permission_graph_smart_contract =
-            PermissionGraphSmartContractImpl::new_for_local_setup()?;
+            SmartContractServiceImpl::new_for_local_setup().await?;
 
-        let prev_version = permission_graph_smart_contract.fetch_current_graph_version().await?;
-        info!("prev version: {}", prev_version);
+        let prev_version = permission_graph_smart_contract
+            .fetch_current_graph_version()
+            .await?;
 
-        // let proposed_version = "ipfs://1";
-        // permission_graph_smart_contract.propose_new_graph_version(proposed_version).await?;
+        let proposed_version = "ipfs://1";
+        permission_graph_smart_contract
+            .propose_new_graph_version(proposed_version)
+            .await?;
 
-        info!("fo");
-        //
-        // let actual_version = permission_graph_smart_contract.fetch_current_graph_version().await?;
-        // info!("current_graph_version: {}", actual_version);
-        //
-        // assert_eq!(proposed_version, actual_version);
+        let actual_version = permission_graph_smart_contract
+            .fetch_current_graph_version()
+            .await?;
 
+        assert_eq!(proposed_version, actual_version);
         Ok(())
     }
 }
