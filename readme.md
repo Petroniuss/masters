@@ -13,8 +13,25 @@ https://liyi-zhou.medium.com/the-complete-truffle-suite-on-docker-truffle-ganach
 ## Local Dev Setup
 
 ### blockchain
-todo install truffle, solidity, ganache.
+todo: install truffle, solidity, ganache.
+To start ganache - local blockchain simulator, run:
 ```bash
+ganache --wallet.mnemonic archangel
+```
+
+To test smart contracts, run:
+```bash
+truffle test
+```
+
+To compile smart contracts, run:
+```bash
+truffle compile
+```
+
+To deploy smart contracts, run:
+```bash
+truffle migrate
 ```
 
 ### organisation

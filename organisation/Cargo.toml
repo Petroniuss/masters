@@ -6,10 +6,6 @@ edition = "2021"
 [dependencies]
 # ethereum
 ethers = { version = "1.0.0", features = ["legacy"] }
-ethers-contract = { version = "1.0.0" }
-# todo: I don't know if I need this, look at it after implementing calling the contract.
-# ethers-solc = { version = "1.0.0" }
-# ethers-providers = { version = "1.0.0" }
 
 # graph
 petgraph = "0.6.2"
@@ -31,6 +27,7 @@ tokio = { version = "1.23.0", features = ["full"] }
 # dev tools
 itertools = "0.10.5"
 chrono = "0.4.23"
+async-trait = "0.1.60"
 
 # testing
 [dev-dependencies]

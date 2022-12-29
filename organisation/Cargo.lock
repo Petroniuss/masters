@@ -1694,11 +1694,11 @@ dependencies = [
 name = "organisation"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "chrono",
  "color-eyre",
  "env_logger 0.9.3",
  "ethers",
- "ethers-contract",
  "itertools",
  "lazy_static",
  "log",

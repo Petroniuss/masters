@@ -1,5 +1,6 @@
 mod bindings;
 mod permission_graph;
+mod smart_contract;
 
 fn main() {
     println!("Ala!");
@@ -7,7 +8,6 @@ fn main() {
 // next step - interact with the smart contract
 // we need to generate rust bindings.
 // let's create a cargo task that does it.
-
 
 // next step - interact with IPFS
 
