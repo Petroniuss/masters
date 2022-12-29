@@ -1,12 +1,10 @@
 use crate::bindings::PermissionGraph;
 use async_trait::async_trait;
 use color_eyre::Result;
-
 use ethers::middleware::gas_oracle::{EthGasStation, GasOracleMiddleware};
 use ethers::middleware::NonceManagerMiddleware;
 use ethers::middleware::SignerMiddleware;
-
-use ethers::providers::{Http, Middleware, Provider};
+use ethers::providers::{Http, Middleware, Provider, StreamExt};
 use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
@@ -26,7 +24,7 @@ trait SmartContractService {
 
     async fn propose_new_graph_version(&self, graph_ipfs_pointer: &str) -> Result<()>;
 
-    // todo: listen for events coming from the smart contract.
+    async fn listen_for_new_events(&self) -> Result<()>;
 }
 
 #[allow(dead_code)]
@@ -125,6 +123,22 @@ impl SmartContractService for SmartContractServiceImpl {
         info!("tx_receipt: {:?}", receipt);
         Ok(())
     }
+
+    async fn listen_for_new_events(&self) -> Result<()> {
+        let events = self.smart_contract_client.events().from_block(0);
+
+        // note that to get future events we call .stream
+        // and for historical events we call .query
+        // there's a feature request to change this;
+        // https://github.com/gakonst/ethers-rs/issues/988
+        let mut stream = events.stream().await?;
+
+        while let Some(Ok(evt)) = stream.next().await {
+            info!("event: {:?}", evt);
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -143,7 +157,7 @@ mod tests {
         let permission_graph_smart_contract =
             SmartContractServiceImpl::new_for_local_setup().await?;
 
-        let prev_version = permission_graph_smart_contract
+        let _prev_version = permission_graph_smart_contract
             .fetch_current_graph_version()
             .await?;
 
@@ -158,5 +172,17 @@ mod tests {
 
         assert_eq!(proposed_version, actual_version);
         Ok(())
+    }
+
+    #[test(tokio::test)]
+    #[ignore]
+    async fn smart_contract_service_events_integration_test() -> Result<()> {
+        info!("Starting smart_contract_service_events_integration_test");
+        let permission_graph_smart_contract =
+            SmartContractServiceImpl::new_for_local_setup().await?;
+
+        permission_graph_smart_contract
+            .listen_for_new_events()
+            .await
     }
 }
