@@ -1699,6 +1699,7 @@ dependencies = [
  "color-eyre",
  "env_logger 0.9.3",
  "ethers",
+ "ethers-signers",
  "itertools",
  "lazy_static",
  "log",
