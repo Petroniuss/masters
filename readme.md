@@ -17,6 +17,8 @@ https://liyi-zhou.medium.com/the-complete-truffle-suite-on-docker-truffle-ganach
 todo: let's switch to foundry
 [foundry](https://github.com/foundry-rs/foundry)
 
+todo: switch to anvil from ganache.
+
 
 todo: install truffle, solidity, ganache.
 To start ganache - local blockchain simulator, run:

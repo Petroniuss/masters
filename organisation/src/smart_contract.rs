@@ -38,7 +38,7 @@ struct SmartContractServiceImpl {
 
 static ORGANISATION_NAME: &'static str = "ORG_A";
 static WALLET_PRIVATE_KEY: &'static str =
-    "db1969650ae7c48058e828fd7dfabe337d1047c86c047a12240c51c74be27ba9";
+    "2834824554106f1a77dd199dfc5456cb40091f560b3b3d2d3417bb04d04bd969";
 static SMART_CONTRACT_ADDRESS: &'static str = "0xad70d5f3490a793b308182f6a0e59ba16298f1ef";
 
 impl SmartContractServiceImpl {
