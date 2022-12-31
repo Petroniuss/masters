@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  check:
+    name: Master's thesis Poc
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install latest stable Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Print Rust version
+        run: rustc --version
+
+      - name: Install Foundry
+        uses: onbjerg/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Print Forge version
+        run: forge --version
+
+      - name: Run cargo check
+        run: >- 
+          cargo check
+            --release
+            --manifest-path=organisation/Cargo.toml
+
+      - name: Run forge tests
+        run: >-
+          forge test -vvv
+            --root=blockchain

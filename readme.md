@@ -1,5 +1,8 @@
 # Master's PoC
 
+
+add github actions running tests that interact with the blockchain.
+
 [Design on Excalidraw](https://excalidraw.com/#token=9wvvufCJTAaAYfN1Qjf9I)
 
 ## Dockerized Setup
