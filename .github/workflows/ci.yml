@@ -61,10 +61,10 @@ jobs:
           --root=blockchain
 
       - name: run local anvil node and deploy smart contract
-        run: docker-compose up -d
+        run: docker-compose up -d --build
 
       - name: integration tests
-        run: export RUST_LOG=INFO && cargo test -- --ignored --nocapture
+        run: export RUST_LOG=INFO && cargo test --manifest-path=organisation/Cargo.toml -- --ignored --nocapture
 
       - name: tear down local anvil node
         run: docker-compose down
