@@ -14,31 +14,31 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
     steps:
-      - name: Checkout
+      - name: checkout
         uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      - name: Install latest stable Rust
+      - name: install latest stable rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
 
-      - name: Print Rust version
+      - name: rust version
         run: rustc --version
 
-      - name: Install Foundry
+      - name: install foundry
         uses: onbjerg/foundry-toolchain@v1
         with:
           version: nightly
 
-      - name: Rust cache
+      - name: rust cache
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: organisation
 
-      - name: Print Forge version
+      - name: forge version
         run: forge --version
 
       - name: cargo check
@@ -55,7 +55,16 @@ jobs:
           args: >
             --manifest-path=organisation/Cargo.toml
 
-      - name: Run forge tests
+      - name: forge tests
         run: >
           forge test -vvv
           --root=blockchain
+
+      - name: run local anvil node and deploy smart contract
+        run: docker-compose up -d
+
+      - name: integration tests
+        run: export RUST_LOG=INFO && cargo test -- --ignored --nocapture
+
+      - name: tear down local anvil node
+        run: docker-compose down

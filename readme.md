@@ -52,6 +52,10 @@ forge create --unlocked \
 ### organisation
 Off-chain code interacting with blockchain is written in [rust](https://www.rust-lang.org/).
 To run the code, you need to install [rustup](https://rustup.rs/).
+To control log level output use env variable `RUST_LOG` for example:
+```bash
+export RUST_LOG=INFO
+```
 
 To run the organisation, run:
 ```bash
@@ -60,7 +64,12 @@ cargo run --release
 
 To run unit tests, run:
 ```bash
-cargo test -- --nocapture
+cargo test
+```
+
+Integration tests are marked as `#[ignored]`. To run integration tests, run:
+```bash
+export RUST_LOG=INFO && cargo test -- --ignored --nocapture
 ```
 
 To run application via docker, run:
