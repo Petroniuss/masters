@@ -1,7 +1,10 @@
 # Master's PoC
 
+![](https://github.com/petroniuss/masters/actions/workflows/ci.yml/badge.svg)
 
-add github actions running tests that interact with the blockchain.
+- done: add github actions that runs tests.
+- create docker-compose 
+  - that runs blockchain locally and runs organisation.
 
 [Design on Excalidraw](https://excalidraw.com/#token=9wvvufCJTAaAYfN1Qjf9I)
 
