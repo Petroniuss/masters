@@ -35,12 +35,12 @@ jobs:
         run: forge --version
 
       - name: Run cargo check
-        run: >- 
+        run: >
           cargo check
             --release
             --manifest-path=organisation/Cargo.toml
 
       - name: Run forge tests
-        run: >-
+        run: >
           forge test -vvv
             --root=blockchain
