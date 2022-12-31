@@ -5,41 +5,39 @@
 ## Dockerized Setup
 
 So far only organisation is dockerized.
-truffle, solidity, ganache, ipfs..
-
 this could be helpful
-https://liyi-zhou.medium.com/the-complete-truffle-suite-on-docker-truffle-ganache-drizzle-47ab18b1ec83
 
 ## Local Dev Setup
 
 ### blockchain
+For working with smart contracts I've chosen [foundry](https://github.com/foundry-rs/foundry). 
+Follow the instructions to install foundry via foundryup:
+- anvil (local Ethereum node, akin to Ganache)
+- forge (Ethereum testing framework, like Truffle)
 
-todo: let's switch to foundry
-[foundry](https://github.com/foundry-rs/foundry)
-
-todo: switch to anvil from ganache.
-
-
-todo: install truffle, solidity, ganache.
-To start ganache - local blockchain simulator, run:
+To start a local ethereum node, run:
 ```bash
-ganache --wallet.mnemonic archangel
-```
-
-To test smart contracts, run:
-```bash
-truffle test
+anvil -m "risk upset sort tank hazard ignore used clap unveil festival barrel wrap"
 ```
 
 To compile smart contracts, run:
 ```bash
-truffle compile
+forge build
 ```
 
-To deploy smart contracts, run:
+To test smart contracts, run:
 ```bash
-truffle migrate
+forge test
 ```
+
+To deploy smart contracts to local anvil node, run:
+```bash
+forge create --unlocked --from 0xd13c4379bfc9a0ea5e147b2d37f65eb2400dfd7b src/PermissionGraph.sol:PermissionGraph
+```
+
+### ipfs
+todo!
+https://liyi-zhou.medium.com/the-complete-truffle-suite-on-docker-truffle-ganache-drizzle-47ab18b1ec83
 
 ### organisation
 todo: dev dependencies - install rust, cargo task.
