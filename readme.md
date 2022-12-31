@@ -13,6 +13,11 @@ https://liyi-zhou.medium.com/the-complete-truffle-suite-on-docker-truffle-ganach
 ## Local Dev Setup
 
 ### blockchain
+
+todo: let's switch to foundry
+[foundry](https://github.com/foundry-rs/foundry)
+
+
 todo: install truffle, solidity, ganache.
 To start ganache - local blockchain simulator, run:
 ```bash

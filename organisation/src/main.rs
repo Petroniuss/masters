@@ -5,9 +5,6 @@ mod smart_contract;
 fn main() {
     println!("Ala!");
 }
-// next step - interact with the smart contract
-// we need to generate rust bindings.
-// let's create a cargo task that does it.
 
 // next step - interact with IPFS
 
@@ -17,6 +14,9 @@ fn main() {
 // - initialize the permission graph
 // - visualize the graph live.
 // would be nice if I could do everything with docker compose
+
+
+
 
 // hmm but I need to be able to interact with some pieces - how?
 // the easiest would be to expose some simple API and use curl/postman/scripts?
