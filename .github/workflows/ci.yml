@@ -39,7 +39,6 @@ jobs:
         with:
           command: check
           args: >
-            --release
             --manifest-path=organisation/Cargo.toml
 
       - name: cargo test
@@ -47,7 +46,6 @@ jobs:
         with:
           command: test
           args: >
-            --release
             --manifest-path=organisation/Cargo.toml
 
       - name: Run forge tests
