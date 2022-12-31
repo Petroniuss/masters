@@ -1,4 +1,4 @@
-FROM ghcr.io/foundry-rs/foundry
+FROM ghcr.io/foundry-rs/foundry:latest
 
 WORKDIR usr/src
 
