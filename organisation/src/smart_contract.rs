@@ -1,4 +1,4 @@
-use crate::bindings::PermissionGraph;
+use crate::bindings::permission_graph::PermissionGraph;
 use async_trait::async_trait;
 use color_eyre::Result;
 use ethers::middleware::gas_oracle::{EthGasStation, GasOracleMiddleware};

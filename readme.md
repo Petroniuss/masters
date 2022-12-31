@@ -30,6 +30,11 @@ To test smart contracts, run:
 forge test
 ```
 
+To generate rust bindings for smart contracts, run:
+```bash
+forge bind --bindings-path ../organisation/src/bindings --module --overwrite
+```
+
 To deploy smart contracts to local anvil node, run:
 ```bash
 forge create --unlocked --from 0xd13c4379bfc9a0ea5e147b2d37f65eb2400dfd7b src/PermissionGraph.sol:PermissionGraph
