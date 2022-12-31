@@ -39,7 +39,7 @@ struct SmartContractServiceImpl {
 static ORGANISATION_NAME: &'static str = "ORG_A";
 static WALLET_PRIVATE_KEY: &'static str =
     "2834824554106f1a77dd199dfc5456cb40091f560b3b3d2d3417bb04d04bd969";
-static SMART_CONTRACT_ADDRESS: &'static str = "0xad70d5f3490a793b308182f6a0e59ba16298f1ef";
+static SMART_CONTRACT_ADDRESS: &'static str = "0xbF5A1966eD793a7cA90878701E410463836BB366";
 
 impl SmartContractServiceImpl {
     #[allow(dead_code)]
