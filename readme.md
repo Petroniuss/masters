@@ -2,7 +2,6 @@
 
 ![](https://github.com/petroniuss/masters/actions/workflows/ci.yml/badge.svg)
 
-- done: add github actions that runs tests.
 - create docker-compose 
   - that runs blockchain locally and runs organisation.
 
