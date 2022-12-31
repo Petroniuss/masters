@@ -34,25 +34,13 @@ jobs:
       - name: Print Forge version
         run: forge --version
 
-      - name: pwd
-        run: pwd
-
-      - name: ls
-        run: ls -la
-
-      - name: List
-        run: ls organisation
-
-      - name: List
-        run: >
-          ls organisation
-          -la
-
       - name: Run cargo check
-        run: >
-          cargo check
-          --release
-          --manifest-path=organisation/Cargo.toml
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: >
+            --release
+            --manifest-path=organisation/Cargo.toml
 
       - name: Run forge tests
         run: >
