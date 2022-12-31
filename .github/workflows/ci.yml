@@ -11,6 +11,8 @@ jobs:
   check:
     name: Master's thesis Poc
     runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -30,6 +32,11 @@ jobs:
         uses: onbjerg/foundry-toolchain@v1
         with:
           version: nightly
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: organisation
 
       - name: Print Forge version
         run: forge --version
