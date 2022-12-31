@@ -1,0 +1,12 @@
+version: "3.3"
+
+services:
+  anvil:
+    build: ./anvil
+    ports:
+      - "8545:8545"
+  blockchain:
+    network_mode: host
+    build: ./blockchain
+    depends_on:
+      - anvil
