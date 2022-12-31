@@ -2,15 +2,7 @@
 
 ![](https://github.com/petroniuss/masters/actions/workflows/ci.yml/badge.svg)
 
-- create docker-compose 
-  - that runs blockchain locally and runs organisation.
-
 [Design on Excalidraw](https://excalidraw.com/#token=9wvvufCJTAaAYfN1Qjf9I)
-
-## Dockerized Setup
-
-So far only organisation is dockerized.
-this could be helpful
 
 ## Local Dev Setup
 
@@ -19,6 +11,12 @@ For developing smart contracts I've chosen [foundry](https://github.com/foundry-
 Follow the instructions to install foundry via foundryup:
 - anvil (local Ethereum node, akin to Ganache)
 - forge (Ethereum testing framework, like Truffle)
+
+There exists a docker-compose that runs an anvil node 
+and deploys the smart contracts.
+```bash
+docker-compose up
+```
 
 To start a local ethereum node, run:
 ```bash
@@ -65,8 +63,12 @@ To run unit tests, run:
 cargo test -- --nocapture
 ```
 
+To run application via docker, run:
+```bash
+docker build -t organisation .
+dokcer run organisation
+```
+
 ### ipfs
-todo!
-https://liyi-zhou.medium.com/the-complete-truffle-suite-on-docker-truffle-ganache-drizzle-47ab18b1ec83
 
 ### Miscellaneous
