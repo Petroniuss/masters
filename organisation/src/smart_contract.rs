@@ -147,7 +147,6 @@ mod tests {
     use crate::smart_contract::SmartContractServiceImpl;
 
     use color_eyre::Result;
-    use log::info;
     use pretty_assertions::assert_eq;
     use test_log::test;
 
@@ -172,17 +171,5 @@ mod tests {
 
         assert_eq!(proposed_version, actual_version);
         Ok(())
-    }
-
-    #[test(tokio::test)]
-    #[ignore]
-    async fn smart_contract_service_events_integration_test() -> Result<()> {
-        info!("Starting smart_contract_service_events_integration_test");
-        let permission_graph_smart_contract =
-            SmartContractServiceImpl::new_for_local_setup().await?;
-
-        permission_graph_smart_contract
-            .listen_for_new_events()
-            .await
     }
 }
