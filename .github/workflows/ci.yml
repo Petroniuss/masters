@@ -34,13 +34,27 @@ jobs:
       - name: Print Forge version
         run: forge --version
 
+      - name: pwd
+        run: pwd
+
+      - name: ls masters
+        run: ls masters
+
+      - name: List
+        run: ls organisation
+
+      - name: List
+        run: >
+          ls organisation
+          -la
+
       - name: Run cargo check
         run: >
           cargo check
-            --release
-            --manifest-path=organisation/Cargo.toml
+          --release
+          --manifest-path=organisation/Cargo.toml
 
       - name: Run forge tests
         run: >
           forge test -vvv
-            --root=blockchain
+          --root=blockchain
