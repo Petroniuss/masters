@@ -59,8 +59,8 @@ jobs:
       - name: run local anvil node and deploy smart contract
         run: docker-compose up -d --build
 
-      - name: integration tests
-        run: export RUST_LOG=INFO && cargo test --manifest-path=organisation/Cargo.toml -- --ignored --nocapture
+#      - name: integration tests
+#        run: export RUST_LOG=INFO && cargo test --manifest-path=organisation/Cargo.toml -- --ignored --nocapture
 
       - name: tear down local anvil node
         run: docker-compose down
