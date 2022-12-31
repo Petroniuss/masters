@@ -47,11 +47,6 @@ https://liyi-zhou.medium.com/the-complete-truffle-suite-on-docker-truffle-ganach
 ### organisation
 todo: dev dependencies - install rust, cargo task.
 
-To generate rust bindings for the smart contracts, run:
-```bash
-cargo task gen-bindings 
-```
-
 To run the organisation, run:
 ```bash
 cargo run --release

@@ -4,7 +4,3 @@ target/
 **/*.rs.bk
 *.pdb
 .git/
-
-.cargo-task/target/
-.cargo-task/gen-bindings/target/
-
