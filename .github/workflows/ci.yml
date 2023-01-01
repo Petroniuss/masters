@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CARGO_TERM_COLOR: always
+      RUST_LOG: INFO
     steps:
       - name: checkout
         uses: actions/checkout@v3
@@ -56,11 +57,15 @@ jobs:
           forge test -vvv
           --root=blockchain
 
+      # todo fix this - we probably cannot use localhost.
       - name: run local anvil node and deploy smart contract
         run: docker-compose up -d --build
 
-#      - name: integration tests
-#        run: export RUST_LOG=INFO && cargo test --manifest-path=organisation/Cargo.toml -- --ignored --nocapture
+      - name: curl
+        run: curl localhost:8545 || echo "pinging localhost 8545"
+
+      - name: integration tests
+        run: cargo test --manifest-path=organisation/Cargo.toml -- --ignored --nocapture
 
       - name: tear down local anvil node
         run: docker-compose down

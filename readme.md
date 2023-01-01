@@ -15,7 +15,7 @@ Follow the instructions to install foundry via foundryup:
 There exists a docker-compose that runs an anvil node 
 and deploys the smart contracts.
 ```bash
-docker-compose up
+docker-compose up --build
 ```
 
 To start a local ethereum node, run:
