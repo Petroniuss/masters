@@ -65,13 +65,13 @@ jobs:
         run: curl localhost:8545 || echo "pinging localhost 8545"
 
       - name: check logs of deployer
-        run: docker logs masters-blockchain-1
+        run: docker logs masters_blockchain_1
 
       - name: integration tests
         run: cargo test --manifest-path=organisation/Cargo.toml -- --ignored --nocapture
 
       - name: check logs of anvil
-        run: docker logs masters-anvil-1
+        run: docker logs masters_anvil_1
 
       - name: tear down local anvil node
         run: docker-compose down
