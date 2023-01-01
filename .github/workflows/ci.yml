@@ -58,20 +58,17 @@ jobs:
           --root=blockchain
 
       # todo fix this - we probably cannot use localhost.
-#      - name: run local anvil node and deploy smart contract
-#        run: docker-compose up -d --build
-#
-#      - name: curl
-#        run: curl localhost:8545 || echo "pinging localhost 8545"
-#
-#      - name: check logs of deployer
-#        run: docker logs masters_blockchain_1
-#
-#      - name: integration tests
-#        run: cargo test --manifest-path=organisation/Cargo.toml -- --ignored --nocapture
-#
-#      - name: check logs of anvil
-#        run: docker logs masters_anvil_1
-#
-#      - name: tear down local anvil node
-#        run: docker-compose down
+      - name: run local anvil node and deploy smart contract
+        run: >
+          docker-compose up -d --build && 
+          docker logs masters_blockchain_1 &&
+          docker logs masters_anvil_1
+
+      - name: curl
+        run: curl localhost:8545 || echo "pinging localhost 8545"
+
+      - name: integration tests
+        run: cargo test --manifest-path=organisation/Cargo.toml -- --ignored --nocapture
+
+      - name: tear down local anvil node
+        run: docker-compose down
