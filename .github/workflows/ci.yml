@@ -57,12 +57,12 @@ jobs:
           forge test -vvv
           --root=blockchain
 
-      # todo fix this - we probably cannot use localhost.
       - name: run local anvil node and deploy smart contract
         run: >
           docker-compose up -d --build && 
-          docker logs masters_blockchain_1 &&
-          docker logs masters_anvil_1
+          docker wait masters-blockchain &&
+          docker logs masters-anvil &&
+          docker logs masters-blockchain
 
       - name: curl
         run: curl localhost:8545 || echo "pinging localhost 8545"
