@@ -13,7 +13,6 @@ import "../src/oracle/PermissionVerifierOracleAPI.sol";
 
 import "../src/oracle/PermissionVerifierOracleAPI.sol";
 
-
 abstract contract UsingSharedAddresses {
     address constant ADDRESS_PEER_1 = 0xd13C4379BfC9a0EA5E147B2D37F65eB2400DFD7B;
     address constant ADDRESS_PEER_2 = 0xd248e4A8407ed7fF9bdBc396ba46723B8101C86e;
@@ -23,16 +22,19 @@ abstract contract UsingSharedAddresses {
     PermissionVerifierOracleAPI oracle = new PermissionVerifierOracle();
 }
 
-abstract contract UsingDeployedPeerSetWithTwoPeers is UsingSharedAddresses, CommonBase {
+abstract contract UsingDeployedPeerSetWithTwoPeers is
+    UsingSharedAddresses,
+    CommonBase
+{
     PeerSetSmartContractAPI peerSetContract;
     address[] peers;
-    string initialGraph = "https://ipfs.io/ipfs/Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu";
+    string initialGraph =
+        "https://ipfs.io/ipfs/Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu";
 
     constructor() {
         peers = new address[](2);
         peers[0] = ADDRESS_PEER_1;
         peers[1] = ADDRESS_PEER_2;
-
 
         peerSetContract = new PeerSetSmartContract(
             peers, oracle, initialGraph
@@ -56,11 +58,13 @@ contract PeerSet is Test, UsingDeployedPeerSetWithTwoPeers {
 
         // when change is validated
         vm.prank(ADDRESS_PEER_2);
-        bytes32 requestId = 0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
+        bytes32 requestId =
+            0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
         oracle.submitPeerValidation(requestId, true);
 
         // then change is applied
-        string memory latestGraph = peerSetContract.latestPeerSetPermissionGraphIPFSPointer();
+        string memory latestGraph =
+            peerSetContract.latestPeerSetPermissionGraphIPFSPointer();
         assertEq(latestGraph, proposedGraph);
     }
 
@@ -72,11 +76,13 @@ contract PeerSet is Test, UsingDeployedPeerSetWithTwoPeers {
 
         // when change is validated
         vm.prank(ADDRESS_PEER_2);
-        bytes32 requestId = 0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
+        bytes32 requestId =
+            0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
         oracle.submitPeerValidation(requestId, false);
 
         // then change is rejected
-        string memory latestGraph = peerSetContract.latestPeerSetPermissionGraphIPFSPointer();
+        string memory latestGraph =
+            peerSetContract.latestPeerSetPermissionGraphIPFSPointer();
         assertEq(latestGraph, initialGraph);
     }
 
@@ -88,11 +94,13 @@ contract PeerSet is Test, UsingDeployedPeerSetWithTwoPeers {
 
         // when change is validated by the same peer
         vm.prank(ADDRESS_PEER_1);
-        bytes32 requestId = 0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
+        bytes32 requestId =
+            0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
         oracle.submitPeerValidation(requestId, true);
 
         // then change is applied
-        string memory latestGraph = peerSetContract.latestPeerSetPermissionGraphIPFSPointer();
+        string memory latestGraph =
+            peerSetContract.latestPeerSetPermissionGraphIPFSPointer();
         assertEq(latestGraph, proposedGraph);
     }
 
@@ -104,14 +112,17 @@ contract PeerSet is Test, UsingDeployedPeerSetWithTwoPeers {
 
         // when change is validated by invalid peer
         vm.prank(ADDRESS_PEER_3);
-        bytes32 requestId = 0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
+        bytes32 requestId =
+            0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
 
         // then validation is rejected.
         vm.expectRevert();
         oracle.submitPeerValidation(requestId, true);
     }
 
-    function testSuccessfulValidationAfterInvalidValidationWasRejected() public {
+    function testSuccessfulValidationAfterInvalidValidationWasRejected()
+        public
+    {
         // given proposed change
         vm.prank(ADDRESS_PEER_1);
         string memory proposedGraph = "https://ipfs.io/ipfs/QmZ1";
@@ -119,7 +130,8 @@ contract PeerSet is Test, UsingDeployedPeerSetWithTwoPeers {
 
         // when change is validated by invalid peer
         vm.prank(ADDRESS_PEER_3);
-        bytes32 requestId = 0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
+        bytes32 requestId =
+            0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
 
         //  validation is rejected
         vm.expectRevert();
@@ -130,23 +142,23 @@ contract PeerSet is Test, UsingDeployedPeerSetWithTwoPeers {
         oracle.submitPeerValidation(requestId, true);
 
         // change is applied.
-        string memory latestGraph = peerSetContract.latestPeerSetPermissionGraphIPFSPointer();
+        string memory latestGraph =
+            peerSetContract.latestPeerSetPermissionGraphIPFSPointer();
         assertEq(latestGraph, proposedGraph);
     }
 
     // todo: test emitted events
-//    function testOracleEmittedEventAfterValidationWasRequested() public {
-//        // given proposed change
-//        vm.prank(ADDRESS_PEER_1);
-//        string memory proposedGraph = "https://ipfs.io/ipfs/QmZ1";
-//        peerSetContract.proposePermissionGraphChange(proposedGraph);
-//
-//        bytes32 requestId = 0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
-//
-//        vm.expectEmit(true, true, false, true);
-////        emit PermissionVerifierOracleAPI.PermissionGraphValidationRequested(
-////            requestId, peerSetContract, proposedGraph
-////        );
-//    }
-
+    //    function testOracleEmittedEventAfterValidationWasRequested() public {
+    //        // given proposed change
+    //        vm.prank(ADDRESS_PEER_1);
+    //        string memory proposedGraph = "https://ipfs.io/ipfs/QmZ1";
+    //        peerSetContract.proposePermissionGraphChange(proposedGraph);
+    //
+    //        bytes32 requestId = 0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
+    //
+    //        vm.expectEmit(true, true, false, true);
+    ////        emit PermissionVerifierOracleAPI.PermissionGraphValidationRequested(
+    ////            requestId, peerSetContract, proposedGraph
+    ////        );
+    //    }
 }

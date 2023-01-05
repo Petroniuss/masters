@@ -9,7 +9,10 @@ contract PermissionGraphTest is Test {
         PermissionGraph permissionGraphContract = new PermissionGraph();
 
         string memory expected = "";
-        assertEq(permissionGraphContract.getLatestPermissionGraphIPFSPointer(), expected);
+        assertEq(
+            permissionGraphContract.getLatestPermissionGraphIPFSPointer(),
+            expected
+        );
     }
 
     function testProposingChange() public {
@@ -17,9 +20,12 @@ contract PermissionGraphTest is Test {
 
         string memory organisationName = "ORG_1";
         string memory newPermissionGraphIPFSPointer = "QmZ1";
-        permissionGraphContract.proposePermissionGraphChange(organisationName, newPermissionGraphIPFSPointer);
+        permissionGraphContract.proposePermissionGraphChange(
+            organisationName, newPermissionGraphIPFSPointer
+        );
 
-        string memory actual = permissionGraphContract.getLatestPermissionGraphIPFSPointer();
+        string memory actual =
+            permissionGraphContract.getLatestPermissionGraphIPFSPointer();
         assertEq(actual, newPermissionGraphIPFSPointer);
     }
 }

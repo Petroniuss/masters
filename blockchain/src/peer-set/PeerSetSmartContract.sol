@@ -27,11 +27,17 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         }
     }
 
-    function latestPeerSetPermissionGraphIPFSPointer() external view returns (string memory) {
+    function latestPeerSetPermissionGraphIPFSPointer()
+        external
+        view
+        returns (string memory)
+    {
         return peerSetPermissionGraphIPFSPointer;
     }
 
-    function proposePermissionGraphChange(string calldata proposedGraphIPFSPointer) external {
+    function proposePermissionGraphChange(
+        string calldata proposedGraphIPFSPointer
+    ) external {
         require(pendingRequestId == 0, "There is already a pending request");
 
         address _peerRequestingChange = msg.sender;
@@ -39,15 +45,20 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
 
         emit PeerSetPermissionGraphChangeRequest(
             msg.sender, proposedGraphIPFSPointer
-        );
+            );
 
-        bytes32 requestId = oracle.validatePermissionGraphChange(proposedGraphIPFSPointer);
+        bytes32 requestId =
+            oracle.validatePermissionGraphChange(proposedGraphIPFSPointer);
         pendingRequestId = requestId;
         pendingGraphIPFSPointer = proposedGraphIPFSPointer;
         peerRequestingChange = _peerRequestingChange;
     }
 
-    function __callback(bytes32 requestId, bool result, address peerValidatingChange) external {
+    function __callback(
+        bytes32 requestId,
+        bool result,
+        address peerValidatingChange
+    ) external {
         require(msg.sender == address(oracle), "Caller is not the oracle");
         require(pendingRequestId == requestId, "RequestId is not valid");
 
@@ -57,13 +68,13 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
                 peerRequestingChange,
                 peerValidatingChange,
                 pendingGraphIPFSPointer
-            );
+                );
         } else {
             emit PeerSetPermissionGraphChangeRejected(
                 peerRequestingChange,
                 peerValidatingChange,
                 pendingGraphIPFSPointer
-            );
+                );
         }
 
         pendingRequestId = 0;

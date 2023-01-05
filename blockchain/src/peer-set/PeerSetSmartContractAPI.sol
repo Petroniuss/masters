@@ -19,10 +19,13 @@ interface PeerSetSmartContractAPI {
     );
 
     function proposePermissionGraphChange(
-        string calldata proposedGraphIPFSPointer) external;
+        string calldata proposedGraphIPFSPointer
+    ) external;
 
     function latestPeerSetPermissionGraphIPFSPointer()
-    external view returns (string memory);
+        external
+        view
+        returns (string memory);
 
     function isPeer(address peer) external view returns (bool);
 
