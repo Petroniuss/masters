@@ -49,9 +49,9 @@ jobs:
           cargo test
           --manifest-path=organisation/Cargo.toml
 
-      - name: forge tests -vvvvv
+      - name: forge tests verbose
         run: >
-          forge test -vvv
+          forge test -vvvvv
           --root=blockchain
 
       - name: run local anvil node and deploy smart contract

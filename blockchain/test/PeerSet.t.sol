@@ -68,18 +68,19 @@ contract PeerSet is Test, UsingDeployedPeerSetWithTwoPeers {
         assertEq(latestGraph, proposedGraph);
     }
 
-    function testPeetSetSmartContractEmittedEventAfterNewGraphWasValidated() public {
+    function testPeetSetSmartContractEmittedEventAfterNewGraphWasValidated()
+        public
+    {
         // given a proposed change
         string memory proposedGraph = "https://ipfs.io/ipfs/QmZ1";
-        bytes32 requestId = 0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
+        bytes32 requestId =
+            0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
         vm.prank(ADDRESS_PEER_1);
         peerSetContract.proposePermissionGraphChange(proposedGraph);
 
         // then oracle event is emitted
         vm.expectEmit(true, true, true, true);
-        emit PermissionGraphChangeValidated(
-            requestId, true
-        );
+        emit PermissionGraphChangeValidated(requestId, true);
 
         // then peet set event is emitted
         vm.expectEmit(true, true, true, true);
@@ -87,8 +88,10 @@ contract PeerSet is Test, UsingDeployedPeerSetWithTwoPeers {
         address peerValidatingChange = ADDRESS_PEER_2;
         string memory updatedPeerSetPermissionGraphIPFSPointer = proposedGraph;
         emit PeerSetPermissionGraphUpdated(
-            peerRequestingChange, peerValidatingChange, updatedPeerSetPermissionGraphIPFSPointer
-        );
+            peerRequestingChange,
+            peerValidatingChange,
+            updatedPeerSetPermissionGraphIPFSPointer
+            );
 
         // when validation is submitted
         vm.prank(ADDRESS_PEER_2);
@@ -177,13 +180,14 @@ contract PeerSet is Test, UsingDeployedPeerSetWithTwoPeers {
     function testOracleEmittedEventAfterValidationWasRequested() public {
         // when a change is proposed
         string memory proposedGraph = "https://ipfs.io/ipfs/QmZ1";
-        bytes32 requestId = 0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
+        bytes32 requestId =
+            0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
 
         // then expected event is emitted
         vm.expectEmit(true, true, true, true);
         emit PermissionGraphValidationRequested(
             requestId, peerSetContract, proposedGraph
-        );
+            );
 
         vm.prank(ADDRESS_PEER_1);
         peerSetContract.proposePermissionGraphChange(proposedGraph);
@@ -192,20 +196,17 @@ contract PeerSet is Test, UsingDeployedPeerSetWithTwoPeers {
     function testOracleEmittedEventAfterValidationWasSubmitted() public {
         // given a proposed change
         string memory proposedGraph = "https://ipfs.io/ipfs/QmZ1";
-        bytes32 requestId = 0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
-
+        bytes32 requestId =
+            0x71686b49e3b73fb9bda0c3dac95d5fcaa75bbd99663c397be8393c8c5513c067;
         vm.prank(ADDRESS_PEER_1);
         peerSetContract.proposePermissionGraphChange(proposedGraph);
 
         // then expected event is emitted
         vm.expectEmit(true, true, true, true);
-        emit PermissionGraphChangeValidated(
-            requestId, true
-        );
+        emit PermissionGraphChangeValidated(requestId, true);
 
         // when validation is submitted
         vm.prank(ADDRESS_PEER_2);
         oracle.submitPeerValidation(requestId, true);
     }
 }
-
