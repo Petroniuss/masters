@@ -1,6 +1,8 @@
 # Master's PoC
 
-![](https://github.com/petroniuss/masters/actions/workflows/ci.yml/badge.svg)
+<p align="center">
+    <img width="200" src="./imgs/ferris.png" alt="Ferris">
+</p>
 
 [Design on Excalidraw](https://excalidraw.com/#token=9wvvufCJTAaAYfN1Qjf9I)
 
