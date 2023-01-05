@@ -10,7 +10,7 @@
 - [blockchain](./blockchain)
   - [x] the simplest possible implementation of [peer-set smart contract](./blockchain/src/peer-set)
     and an [oracle](./blockchain/src/oracle).
-  - [x] test suite for the peer-set smart contract and oracle.
+  - [x] [test suite](./blockchain/test/PeerSet.t.sol) for the peer-set smart contract and oracle.
 - [organisation](./organisation)
   - [ ] deployment of peer-set smart contract and oracle.
   - [ ] test suite for the peer-set smart contract and oracle from off-chain code.

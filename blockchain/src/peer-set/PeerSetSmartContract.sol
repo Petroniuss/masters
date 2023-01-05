@@ -38,6 +38,7 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
     function proposePermissionGraphChange(
         string calldata proposedGraphIPFSPointer
     ) external {
+        // todo - 'require' blocks could be implemented as modifiers.
         require(pendingRequestId == 0, "There is already a pending request");
 
         address _peerRequestingChange = msg.sender;
