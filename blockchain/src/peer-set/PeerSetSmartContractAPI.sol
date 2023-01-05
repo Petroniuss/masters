@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-interface PeerSetSmartContractAPI {
+interface UsingPeerSetEvents {
     event PeerSetPermissionGraphChangeRequest(
         address peerRequestingChange,
         string proposedPeerSetPermissionGraphIPFSPointer
@@ -17,7 +17,9 @@ interface PeerSetSmartContractAPI {
         address peerValidatingChange,
         string rejectedPeerSetPermissionGraphIPFSPointer
     );
+}
 
+interface PeerSetSmartContractAPI is UsingPeerSetEvents {
     function proposePermissionGraphChange(
         string calldata proposedGraphIPFSPointer
     ) external;
