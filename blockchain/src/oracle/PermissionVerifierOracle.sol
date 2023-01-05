@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "./PeerSetSmartContractAPI.sol";
+import "../peer-set/PeerSetSmartContractAPI.sol";
+import "./PermissionVerifierOracleAPI.sol";
 
 // The simplest possible implementation that I could come up with.
 // Once again we could have a single contract that handles all the
 // permission graph changes, or we could have one per PeerSet.
-contract PermissionVerifierOracle {
+contract PermissionVerifierOracle is PermissionVerifierOracleAPI {
     mapping(bytes32 => PeerSetSmartContractAPI) public requests;
 
     constructor() {}

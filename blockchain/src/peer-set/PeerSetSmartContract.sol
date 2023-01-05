@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "./PermissionVerifierOracle.sol";
 import "./PeerSetSmartContractAPI.sol";
+import "../oracle/PermissionVerifierOracleAPI.sol";
 
 contract PeerSetSmartContract is PeerSetSmartContractAPI {
     mapping(address => bool) public peers;
-    PermissionVerifierOracle public oracle;
+    PermissionVerifierOracleAPI public oracle;
     string public peerSetPermissionGraphIPFSPointer;
 
     // todo: wrap this into a nice struct.
@@ -16,7 +16,7 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
 
     constructor(
         address[] memory _peers,
-        PermissionVerifierOracle _oracle,
+        PermissionVerifierOracleAPI _oracle,
         string memory _peerSetPermissionGraphIPFSPointer
     ) {
         oracle = _oracle;
