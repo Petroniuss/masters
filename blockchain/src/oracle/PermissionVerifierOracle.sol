@@ -12,30 +12,34 @@ contract PermissionVerifierOracle is PermissionVerifierOracleAPI {
 
     constructor() {}
 
-    function validatePermissionGraphChange(
-        string calldata proposedGraphIPFSPointer) external returns (bytes32) {
+    function validatePermissionGraphChange(string calldata proposedGraphIPFSPointer) external returns (bytes32) {
         PeerSetSmartContractAPI caller = PeerSetSmartContractAPI(msg.sender);
-        bytes32 requestId = keccak256(abi.encodePacked(proposedGraphIPFSPointer));
+        bytes32 requestId = keccak256(
+            abi.encodePacked(proposedGraphIPFSPointer)
+        );
+
+        emit PermissionGraphValidationRequested(
+            requestId, caller, proposedGraphIPFSPointer
+        );
 
         requests[requestId] = caller;
 
         return requestId;
     }
 
-    // setting a result should only be possible by one of the peers.
-    function validatePermissionGraphChangeResult(
-        bytes32 requestId,
-        bool result) external {
+    function submitPeerValidation(bytes32 requestId, bool result) external {
         PeerSetSmartContractAPI peerSetSmartContract = requests[requestId];
-        require(address(peerSetSmartContract) != address(0), "RequestId is not valid");
+        require(address(peerSetSmartContract) != address(0),
+            "RequestId is not valid");
 
         address peerValidatingChange = msg.sender;
         require(peerSetSmartContract.isPeer(peerValidatingChange),
             "only a peer can validate permission graph change");
 
+        emit PermissionGraphChangeValidated(requestId, result);
+
         peerSetSmartContract.__callback(requestId, result, peerValidatingChange);
 
         delete requests[requestId];
     }
-
 }

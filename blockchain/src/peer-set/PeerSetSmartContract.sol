@@ -22,19 +22,24 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         oracle = _oracle;
         peerSetPermissionGraphIPFSPointer = _peerSetPermissionGraphIPFSPointer;
 
-        for (uint i = 0; i < _peers.length; i++) {
+        for (uint256 i = 0; i < _peers.length; i++) {
             peers[_peers[i]] = true;
         }
     }
 
-    function proposePermissionGraphChange(
-        string calldata proposedGraphIPFSPointer) external {
+    function latestPeerSetPermissionGraphIPFSPointer() external view returns (string memory) {
+        return peerSetPermissionGraphIPFSPointer;
+    }
+
+    function proposePermissionGraphChange(string calldata proposedGraphIPFSPointer) external {
         require(pendingRequestId == 0, "There is already a pending request");
 
         address _peerRequestingChange = msg.sender;
         require(isPeer(_peerRequestingChange), "Caller is not a peer");
 
-        emit PeerSetPermissionGraphChangeRequest(msg.sender, proposedGraphIPFSPointer);
+        emit PeerSetPermissionGraphChangeRequest(
+            msg.sender, proposedGraphIPFSPointer
+        );
 
         bytes32 requestId = oracle.validatePermissionGraphChange(proposedGraphIPFSPointer);
         pendingRequestId = requestId;
@@ -69,5 +74,4 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
     function isPeer(address _peer) public view returns (bool) {
         return peers[_peer];
     }
-
 }

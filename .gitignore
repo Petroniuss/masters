@@ -1,4 +1,5 @@
 .idea/
+.run
 organisation/target/
 blockchain/build/
 masters.iml

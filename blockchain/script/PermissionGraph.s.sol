@@ -9,5 +9,4 @@ contract PermissionGraphScript is Script {
     function run() public {
         vm.broadcast();
     }
-
 }

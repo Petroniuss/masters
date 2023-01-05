@@ -1,8 +1,7 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.17;
 
 interface PeerSetSmartContractAPI {
-
     event PeerSetPermissionGraphChangeRequest(
         address peerRequestingChange,
         string proposedPeerSetPermissionGraphIPFSPointer
@@ -12,7 +11,6 @@ interface PeerSetSmartContractAPI {
         address peerRequestingChange,
         address peerValidatingChange,
         string updatedPeerSetPermissionGraphIPFSPointer
-
     );
     event PeerSetPermissionGraphChangeRejected(
         address peerRequestingChange,
@@ -20,15 +18,17 @@ interface PeerSetSmartContractAPI {
         string rejectedPeerSetPermissionGraphIPFSPointer
     );
 
+    function proposePermissionGraphChange(
+        string calldata proposedGraphIPFSPointer) external;
+
+    function latestPeerSetPermissionGraphIPFSPointer()
+    external view returns (string memory);
+
     function isPeer(address peer) external view returns (bool);
 
     function __callback(
         bytes32 requestId,
         bool result,
         address peerValidatingChange
-    ) external;
-
-    function proposePermissionGraphChange(
-        string calldata proposedGraphIPFSPointer
     ) external;
 }

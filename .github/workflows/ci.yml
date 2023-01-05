@@ -49,7 +49,7 @@ jobs:
           cargo test
           --manifest-path=organisation/Cargo.toml
 
-      - name: forge tests
+      - name: forge tests -vvvvv
         run: >
           forge test -vvv
           --root=blockchain

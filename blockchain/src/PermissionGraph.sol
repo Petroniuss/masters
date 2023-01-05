@@ -5,13 +5,11 @@ contract PermissionGraph {
     string public PermissionGraphIPFSPointer;
 
     event PermissionGraphChangeRequest(
-        string organisationName,
-        string _PermissionGraphIPFSPointer
+        string organisationName, string _PermissionGraphIPFSPointer
     );
 
     event PermissionGraphUpdated(
-        string organisationName,
-        string PermissionGraphIPFSPointer
+        string organisationName, string PermissionGraphIPFSPointer
     );
 
     // we need to have some notion of organisations.
@@ -26,15 +24,19 @@ contract PermissionGraph {
     // if validated then change
     // if a new graph change comes in
     // then either invalidate the old one
-    function proposePermissionGraphChange(
-        string calldata organisationName,
-        string calldata _PermissionGraphIPFSPointer) external {
-        emit PermissionGraphChangeRequest(organisationName, _PermissionGraphIPFSPointer);
+    function proposePermissionGraphChange(string calldata organisationName, string calldata _PermissionGraphIPFSPointer)
+    external
+    {
+        emit PermissionGraphChangeRequest(
+            organisationName, _PermissionGraphIPFSPointer
+        );
 
         // todo: we need to validate the change via an oracle.
         // for now let's blindly accept the change.
         PermissionGraphIPFSPointer = _PermissionGraphIPFSPointer;
-        emit PermissionGraphUpdated(organisationName, PermissionGraphIPFSPointer);
+        emit PermissionGraphUpdated(
+            organisationName, PermissionGraphIPFSPointer
+        );
     }
 
     function getLatestPermissionGraphIPFSPointer() public view returns (string memory) {
