@@ -6,6 +6,15 @@
 
 [Design on Excalidraw](https://excalidraw.com/#token=9wvvufCJTAaAYfN1Qjf9I)
 
+## What's implemented?
+- [blockchain](./blockchain)
+  - [x] the simplest possible implementation of [peer-set smart contract](./blockchain/src/peer-set)
+    and an [oracle](./blockchain/src/oracle).
+  - [x] test suite for the peer-set smart contract and oracle.
+- [organisation](./organisation)
+  - [ ] deployment of peer-set smart contract and oracle.
+  - [ ] test suite for the peer-set smart contract and oracle from off-chain code.
+
 ## Local Dev Setup
 
 ### blockchain
@@ -33,7 +42,12 @@ forge build
 
 To test smart contracts, run:
 ```bash
-forge test
+forge test 
+```
+
+To test smart contracts and see logs, gas usage etc, run:
+```bash
+forge test -vvvvv
 ```
 
 To generate rust bindings for smart contracts, run:
