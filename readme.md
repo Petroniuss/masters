@@ -52,7 +52,7 @@ forge test -vvvvv
 
 To generate rust bindings for smart contracts, run:
 ```bash
-forge bind \ 
+forge bind \
   --bindings-path ../organisation/src/bindings \
   --module \
   --overwrite

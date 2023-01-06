@@ -11,7 +11,7 @@ import "../src/peer-set/PeerSetSmartContract.sol";
 import "../src/oracle/PermissionVerifierOracle.sol";
 import "../src/oracle/PermissionVerifierOracleAPI.sol";
 
-abstract contract UsingSharedAddresses {
+abstract contract UsingSharedAddressesTest {
     address constant ADDRESS_PEER_1 = 0xd13C4379BfC9a0EA5E147B2D37F65eB2400DFD7B;
     address constant ADDRESS_PEER_2 = 0xd248e4A8407ed7fF9bdBc396ba46723B8101C86e;
     address constant ADDRESS_PEER_3 = 0x2EFdD9aac437AC8d6CAC7cAFa3887b08769Dc049;
@@ -20,8 +20,8 @@ abstract contract UsingSharedAddresses {
     PermissionVerifierOracleAPI oracle = new PermissionVerifierOracle();
 }
 
-abstract contract UsingDeployedPeerSetWithTwoPeers is
-    UsingSharedAddresses,
+abstract contract UsingDeployedPeerSetWithTwoPeersTest is
+UsingSharedAddressesTest,
     UsingPermissionVerifierOracleEvents,
     UsingPeerSetEvents,
     CommonBase
@@ -49,7 +49,7 @@ abstract contract UsingDeployedPeerSetWithTwoPeers is
     }
 }
 
-contract PeerSet is Test, UsingDeployedPeerSetWithTwoPeers {
+contract PeerSetTest is Test, UsingDeployedPeerSetWithTwoPeersTest {
     function testSuccessfulGraphChange() public {
         // given proposed change
         vm.prank(ADDRESS_PEER_1);
