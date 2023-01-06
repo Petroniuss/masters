@@ -3,6 +3,12 @@ name = "organisation"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+
+[[bin]]
+name = "organisation"
+path = "src/main.rs"
+
 [dependencies]
 # ethereum
 ethers = { version = "1.0.0", features = ["legacy"] }
