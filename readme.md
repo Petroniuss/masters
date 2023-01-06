@@ -67,7 +67,14 @@ forge create --unlocked \
 
 ### organisation
 Off-chain code interacting with blockchain is written in [rust](https://www.rust-lang.org/).
+
+#### miscellaneous
+As an introduction material for learning Rust I recommend [The Rust Programming Language](https://doc.rust-lang.org/book/title-page.html).
+
 To run the code, you need to install [rustup](https://rustup.rs/).
+
+Code is organised according to [Package Layout](https://doc.rust-lang.org/cargo/guide/project-layout.html) from [The Cargo Book](https://doc.rust-lang.org/cargo/index.html).
+
 To control log level output use env variable `RUST_LOG` for example:
 ```bash
 export RUST_LOG=INFO

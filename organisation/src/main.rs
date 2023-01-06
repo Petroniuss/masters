@@ -16,6 +16,7 @@ mod smart_contract;
 ///   - create lib crate.
 ///   - create examples folder.
 ///   - create bin crate consuming lib crate.
+///   - Goal: https://doc.rust-lang.org/cargo/guide/project-layout.html
 ///
 /// Stretch:
 /// - off-chain code assembling knowledge from multiple smart contracts,
