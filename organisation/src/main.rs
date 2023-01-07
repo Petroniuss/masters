@@ -10,7 +10,7 @@ mod smart_contract;
 ///   - propose a change
 ///   - validate the change
 /// - update docker-compose to run hello-world setup:
-///   - ideally this would be an **example**
+///   - ideally this would be an **example** or maybe a separate **bin** target?
 ///
 /// Using examples:
 ///   - create lib crate.
@@ -21,6 +21,11 @@ mod smart_contract;
 /// Stretch:
 /// - off-chain code assembling knowledge from multiple smart contracts,
 /// - that's able to respond to queries whether given operation is allowed.
+///
+/// - use dockerized-rust image to build and run the code in CI pipeline:
+///     - switch from using rust-cache to pushing each layer to docker registry
+///     - switch to Docker BuildKit in CI pipeline and integrate with docker-registry.
+///
 fn main() {
     println!("Ala!");
 }
