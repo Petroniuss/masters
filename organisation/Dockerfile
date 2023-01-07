@@ -15,6 +15,8 @@ RUN --mount=type=cache,target=~/.cargo \
     echo "fn main() { println!(\"Hello, world!\"); }" > src/main.rs
     mkdir -p src/bin/start-the-world/
     echo "fn main() { println!(\"Hello, world!\"); }" > src/bin/start-the-world/main.rs
+    mkdir -p examples/start-the-world/
+    echo "fn main() { println!(\"Hello, world!\"); }" > examples/start-the-world/main.rs
 EOF
 
 # build dependencies
@@ -24,6 +26,19 @@ RUN --mount=type=cache,target=~/.cargo \
 
 # copy the actual sorce code
 COPY . .
+
+# compile the source code
+RUN --mount=type=cache,target=~/.cargo \
+    --mount=type=cache,target=/usr/masters/organisation/target \
+    cargo build --release
+
+FROM build as test
+
+RUN --mount=type=cache,target=~/.cargo \
+    --mount=type=cache,target=/usr/masters/organisation/target \
+    cargo test --release
+
+FROM build AS release
 
 # install the binaries
 RUN --mount=type=cache,target=~/.cargo \
@@ -35,7 +50,7 @@ FROM frolvlad/alpine-glibc:alpine-3.17
 WORKDIR /usr/local/bin
 
 # note that we have multiple binaries in the same image.
-COPY --from=build /usr/local/cargo/bin/organisation .
-COPY --from=build /usr/local/cargo/bin/start-the-world .
+COPY --from=release /usr/local/cargo/bin/organisation .
+COPY --from=release /usr/local/cargo/bin/start-the-world .
 
 CMD ["organisation"]
