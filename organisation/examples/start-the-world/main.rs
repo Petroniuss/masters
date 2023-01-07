@@ -1,19 +1,20 @@
 extern crate organisation;
 
+use crate::organisation::data_model::peer_set::{
+    Peer, PeerSet,
+};
 use crate::organisation::errors::Result;
-
+use crate::organisation::on_chain::contract_deployment::PeerSetSmartContractDeployment;
+use crate::organisation::on_chain::{
+    contract_deployment, ethereum_client,
+};
 use ethers::abi::Address;
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
 use organisation::data_model::organisation::{
     ExecutingOrganisation, Organisation,
 };
-use organisation::data_model::peer_set::{Peer, PeerSet};
-
-use organisation::on_chain::{
-    contract_deployment, ethereum_client,
-};
-
+use organisation::on_chain::contract_deployment::OracleSmartContractDeployment;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -50,14 +51,6 @@ fn executing_organisation() -> Result<Arc<ExecutingOrganisation>>
     }))
 }
 
-fn deployed_oracle_address() -> Address {
-    // some random address for now.
-    Address::from_str(
-        "0xbf5a1966ed793a7ca90878701e410463836bb366",
-    )
-    .unwrap()
-}
-
 fn peer_set_graph_ipfs_pointer() -> String {
     // some random pointer for now.
     return "https://ipfs.io/ipfs/Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu"
@@ -82,16 +75,21 @@ async fn main() -> Result<()> {
         )?;
 
     let contract_deployment_service =
-        contract_deployment::PeerSetContractDeploymentService {
+        contract_deployment::SmartContractDeploymentService {
             executing_organisation: executing_organisation
                 .clone(),
             ethereum_client: ethereum_client.clone(),
         };
 
-    let _ = contract_deployment_service
-        .deploy_peer_set_contract(
+    let permission_verifier_oracle =
+        contract_deployment_service
+            .deploy_permission_verifier_oracle()
+            .await?;
+
+    let _peer_set_smart_contract = contract_deployment_service
+        .deploy_peer_set_smart_contract(
             &peer_set,
-            deployed_oracle_address(),
+            &permission_verifier_oracle,
             peer_set_graph_ipfs_pointer(),
         )
         .await?;
