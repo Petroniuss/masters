@@ -74,7 +74,9 @@ impl PermissionGraphVis for PermissionGraph {
     }
 }
 
-fn to_dot<'a>(permission_graph: &'a PermissionGraph) -> Dot<'a, &PermissionGraph> {
+fn to_dot<'a>(
+    permission_graph: &'a PermissionGraph,
+) -> Dot<'a, &PermissionGraph> {
     Dot::with_config(&permission_graph, &[Config::EdgeNoLabel])
 }
 

@@ -12,7 +12,13 @@
     and an [oracle](./blockchain/src/oracle).
   - [x] [test suite](./blockchain/test/PeerSet.t.sol) for the peer-set smart contract and oracle.
 - [organisation](./organisation)
-  - [ ] deployment of peer-set smart contract and oracle.
+  - [start-the-world](./organisation/examples/start-the-world):
+    - [x] deployment of a peer-set smart contract.
+    - [ ] deployment of an oracle.
+  - [ ] listening to events from the peer-set smart contracts.
+  - [ ] listening to events from the oracle to validate results.
+  - [ ] validating incoming permission graph change requests:
+    - [ ] simple permission model - as close as possible to what OneData already has.
   - [ ] test suite for the peer-set smart contract and oracle from off-chain code.
 
 ## Local Dev Setup
@@ -80,9 +86,14 @@ To control log level output use env variable `RUST_LOG` for example:
 export RUST_LOG=INFO
 ```
 
-To run the organisation, run:
+To control backtrace level use env variable `RUST_BACKTRACE` for example:
 ```bash
-cargo run --release
+export RUST_BACKTRACE=full
+```
+
+To run start-the-world, run:
+```bash
+cargo run --example start-the-world
 ```
 
 To run unit tests, run:

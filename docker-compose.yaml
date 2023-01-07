@@ -6,6 +6,7 @@ services:
     build: ./anvil
     ports:
       - "8545:8545"
+  # todo get rid of this :)
   blockchain:
     container_name: masters-blockchain
     network_mode: host

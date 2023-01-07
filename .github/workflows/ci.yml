@@ -14,6 +14,7 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
       RUST_LOG: INFO
+      RUST_BACKTRACE: FULL
     steps:
       - name: checkout
         uses: actions/checkout@v3
@@ -39,7 +40,7 @@ jobs:
         with:
           workspaces: organisation
 
-      - name: cargo check
+      - name: cargo build
         run: >
           cargo check
           --manifest-path=organisation/Cargo.toml
@@ -47,6 +48,11 @@ jobs:
       - name: cargo test
         run: >
           cargo test
+          --manifest-path=organisation/Cargo.toml
+
+      - name: cargo build examples
+        run: >
+          cargo build --examples
           --manifest-path=organisation/Cargo.toml
 
       - name: forge tests verbose
@@ -60,6 +66,11 @@ jobs:
           docker wait masters-blockchain &&
           docker logs masters-anvil &&
           docker logs masters-blockchain
+
+      - name: cargo run start-the-world
+        run: >
+          cargo run --example start-the-world
+          --manifest-path=organisation/Cargo.toml
 
       - name: curl
         run: curl localhost:8545 || echo "pinging localhost 8545"

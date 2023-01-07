@@ -1705,7 +1705,7 @@ dependencies = [
  "log",
  "petgraph",
  "pretty_assertions",
- "sensible-env-logger",
+ "pretty_env_logger",
  "serde",
  "serde_derive",
  "test-log",
@@ -2315,16 +2315,6 @@ name = "send_wrapper"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "930c0acf610d3fdb5e2ab6213019aaa04e227ebe9547b0649ba599b16d788bd7"
-
-[[package]]
-name = "sensible-env-logger"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ced68043c576cfe54922c96140aeee81bbf55b419ec61595057ea4301a294f31"
-dependencies = [
- "log",
- "pretty_env_logger",
-]
 
 [[package]]
 name = "serde"
