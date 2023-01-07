@@ -183,9 +183,7 @@ pub mod using_permission_verifier_oracle_events {
                     ),
                 );
             }
-            if let Ok(decoded) =
-                PermissionGraphValidationRequestedFilter::decode_log(log)
-            {
+            if let Ok(decoded) = PermissionGraphValidationRequestedFilter::decode_log(log) {
                 return Ok (UsingPermissionVerifierOracleEventsEvents :: PermissionGraphValidationRequestedFilter (decoded));
             }
             Err(ethers::core::abi::Error::InvalidData)

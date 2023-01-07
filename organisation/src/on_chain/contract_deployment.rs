@@ -1,4 +1,5 @@
 use crate::bindings;
+use crate::bindings::peer_broadcast::PeerBroadcast;
 use crate::bindings::permission_verifier_oracle::PermissionVerifierOracle;
 use crate::data_model::organisation::ExecutingOrganisation;
 use crate::data_model::peer_set::PeerSet;
@@ -28,6 +29,13 @@ pub trait OracleSmartContractDeployment {
     async fn deploy_permission_verifier_oracle(
         &self,
     ) -> Result<PermissionVerifierOracle<EthereumClient>>;
+}
+
+#[async_trait]
+pub trait PeerBroadcastSmartContractDeployment {
+    async fn deploy_peer_broadcast_smart_contract(
+        &self,
+    ) -> Result<PeerBroadcast<EthereumClient>>;
 }
 
 pub struct SmartContractDeploymentService {
@@ -104,5 +112,30 @@ impl OracleSmartContractDeployment
         );
 
         Ok(oracle_smart_contract)
+    }
+}
+#[async_trait]
+impl PeerBroadcastSmartContractDeployment
+    for SmartContractDeploymentService
+{
+    async fn deploy_peer_broadcast_smart_contract(
+        &self,
+    ) -> Result<PeerBroadcast<EthereumClient>> {
+        info!("Beginning deployment of the peer broadcast contract...");
+        let constructor_args = Token::Tuple(vec![]);
+        let contract_deployer = PeerBroadcast::deploy(
+            self.ethereum_client.clone(),
+            constructor_args,
+        )?;
+
+        let peer_broadcast_smart_contract =
+            contract_deployer.send().await?;
+
+        info!(
+            "Deployed peer broadcast smart contract: {:?}",
+            peer_broadcast_smart_contract
+        );
+
+        Ok(peer_broadcast_smart_contract)
     }
 }

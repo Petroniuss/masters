@@ -10,6 +10,10 @@ path = "src/lib.rs"
 name = "organisation"
 path = "src/main.rs"
 
+[[bin]]
+name = "start-the-world"
+path = "src/bin/start-the-world/main.rs"
+
 [dependencies]
 # ethereum
 ethers = { version = "1.0.0", features = ["legacy"] }
@@ -21,6 +25,7 @@ petgraph = "0.6.2"
 # telemetry
 log = "0.4.17"
 color-eyre = "0.6.0"
+pretty_env_logger = "0.4.0"
 
 # configuration
 toml = "0.5.2"
@@ -38,7 +43,6 @@ async-trait = "0.1.60"
 
 # testing
 [dev-dependencies]
-pretty_env_logger = "0.4.0"
 env_logger = "0.9.0"
 test-log = "0.2.11"
 pretty_assertions = "1"

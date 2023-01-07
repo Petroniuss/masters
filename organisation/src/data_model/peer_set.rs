@@ -1,9 +1,11 @@
 use ethers::types::Address;
 
+#[derive(Clone, Debug)]
 pub struct PeerSet {
     pub peers: Vec<Peer>,
 }
 
+#[derive(Clone, Debug)]
 pub struct Peer {
     pub ethereum_address: Address,
 }

@@ -249,20 +249,14 @@ pub mod permission_graph {
                     log,
                 )
             {
-                return Ok(
-                    PermissionGraphEvents::PermissionGraphChangeRequestFilter(
-                        decoded,
-                    ),
-                );
+                return Ok(PermissionGraphEvents::PermissionGraphChangeRequestFilter(
+                    decoded,
+                ));
             }
             if let Ok(decoded) =
                 PermissionGraphUpdatedFilter::decode_log(log)
             {
-                return Ok(
-                    PermissionGraphEvents::PermissionGraphUpdatedFilter(
-                        decoded,
-                    ),
-                );
+                return Ok(PermissionGraphEvents::PermissionGraphUpdatedFilter(decoded));
             }
             Err(ethers::core::abi::Error::InvalidData)
         }
@@ -273,12 +267,10 @@ pub mod permission_graph {
             f: &mut ::std::fmt::Formatter<'_>,
         ) -> ::std::fmt::Result {
             match self {
-                PermissionGraphEvents::PermissionGraphChangeRequestFilter(
-                    element,
-                ) => element.fmt(f),
-                PermissionGraphEvents::PermissionGraphUpdatedFilter(
-                    element,
-                ) => element.fmt(f),
+                PermissionGraphEvents::PermissionGraphChangeRequestFilter(element) => {
+                    element.fmt(f)
+                }
+                PermissionGraphEvents::PermissionGraphUpdatedFilter(element) => element.fmt(f),
             }
         }
     }
@@ -384,15 +376,11 @@ pub mod permission_graph {
     impl ethers::core::abi::AbiEncode for PermissionGraphCalls {
         fn encode(self) -> Vec<u8> {
             match self {
-                PermissionGraphCalls::PermissionGraphIPFSPointer(element) => {
+                PermissionGraphCalls::PermissionGraphIPFSPointer(element) => element.encode(),
+                PermissionGraphCalls::GetLatestPermissionGraphIPFSPointer(element) => {
                     element.encode()
                 }
-                PermissionGraphCalls::GetLatestPermissionGraphIPFSPointer(
-                    element,
-                ) => element.encode(),
-                PermissionGraphCalls::ProposePermissionGraphChange(element) => {
-                    element.encode()
-                }
+                PermissionGraphCalls::ProposePermissionGraphChange(element) => element.encode(),
             }
         }
     }
@@ -402,15 +390,11 @@ pub mod permission_graph {
             f: &mut ::std::fmt::Formatter<'_>,
         ) -> ::std::fmt::Result {
             match self {
-                PermissionGraphCalls::PermissionGraphIPFSPointer(element) => {
+                PermissionGraphCalls::PermissionGraphIPFSPointer(element) => element.fmt(f),
+                PermissionGraphCalls::GetLatestPermissionGraphIPFSPointer(element) => {
                     element.fmt(f)
                 }
-                PermissionGraphCalls::GetLatestPermissionGraphIPFSPointer(
-                    element,
-                ) => element.fmt(f),
-                PermissionGraphCalls::ProposePermissionGraphChange(element) => {
-                    element.fmt(f)
-                }
+                PermissionGraphCalls::ProposePermissionGraphChange(element) => element.fmt(f),
             }
         }
     }

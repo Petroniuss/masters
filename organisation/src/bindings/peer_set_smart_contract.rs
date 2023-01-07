@@ -358,16 +358,12 @@ pub mod peer_set_smart_contract {
         where
             Self: Sized,
         {
-            if let Ok(decoded) =
-                PeerSetPermissionGraphChangeRejectedFilter::decode_log(log)
-            {
+            if let Ok(decoded) = PeerSetPermissionGraphChangeRejectedFilter::decode_log(log) {
                 return Ok(
                     PeerSetSmartContractEvents::PeerSetPermissionGraphChangeRejectedFilter(decoded),
                 );
             }
-            if let Ok(decoded) =
-                PeerSetPermissionGraphChangeRequestFilter::decode_log(log)
-            {
+            if let Ok(decoded) = PeerSetPermissionGraphChangeRequestFilter::decode_log(log) {
                 return Ok(
                     PeerSetSmartContractEvents::PeerSetPermissionGraphChangeRequestFilter(decoded),
                 );
@@ -585,24 +581,16 @@ pub mod peer_set_smart_contract {
             ethers::core::abi::AbiError,
         > {
             if let Ok(decoded) =
-                <CallbackCall as ethers::core::abi::AbiDecode>::decode(
-                    data.as_ref(),
-                )
+                <CallbackCall as ethers::core::abi::AbiDecode>::decode(data.as_ref())
             {
                 return Ok(PeerSetSmartContractCalls::Callback(decoded));
             }
-            if let Ok(decoded) =
-                <IsPeerCall as ethers::core::abi::AbiDecode>::decode(
-                    data.as_ref(),
-                )
+            if let Ok(decoded) = <IsPeerCall as ethers::core::abi::AbiDecode>::decode(data.as_ref())
             {
                 return Ok(PeerSetSmartContractCalls::IsPeer(decoded));
             }
             if let Ok (decoded) = < LatestPeerSetPermissionGraphIPFSPointerCall as ethers :: core :: abi :: AbiDecode > :: decode (data . as_ref ()) { return Ok (PeerSetSmartContractCalls :: LatestPeerSetPermissionGraphIPFSPointer (decoded)) }
-            if let Ok(decoded) =
-                <OracleCall as ethers::core::abi::AbiDecode>::decode(
-                    data.as_ref(),
-                )
+            if let Ok(decoded) = <OracleCall as ethers::core::abi::AbiDecode>::decode(data.as_ref())
             {
                 return Ok(PeerSetSmartContractCalls::Oracle(decoded));
             }
@@ -618,10 +606,7 @@ pub mod peer_set_smart_contract {
             {
                 return Ok(PeerSetSmartContractCalls::PeerSetPermissionGraphIPFSPointer(decoded));
             }
-            if let Ok(decoded) =
-                <PeersCall as ethers::core::abi::AbiDecode>::decode(
-                    data.as_ref(),
-                )
+            if let Ok(decoded) = <PeersCall as ethers::core::abi::AbiDecode>::decode(data.as_ref())
             {
                 return Ok(PeerSetSmartContractCalls::Peers(decoded));
             }
@@ -631,13 +616,9 @@ pub mod peer_set_smart_contract {
                 return Ok(PeerSetSmartContractCalls::PendingGraphIPFSPointer(decoded));
             }
             if let Ok(decoded) =
-                <PendingRequestIdCall as ethers::core::abi::AbiDecode>::decode(
-                    data.as_ref(),
-                )
+                <PendingRequestIdCall as ethers::core::abi::AbiDecode>::decode(data.as_ref())
             {
-                return Ok(PeerSetSmartContractCalls::PendingRequestId(
-                    decoded,
-                ));
+                return Ok(PeerSetSmartContractCalls::PendingRequestId(decoded));
             }
             if let Ok(decoded) =
                 <ProposePermissionGraphChangeCall as ethers::core::abi::AbiDecode>::decode(
@@ -720,9 +701,7 @@ pub mod peer_set_smart_contract {
         fn from(
             var: LatestPeerSetPermissionGraphIPFSPointerCall,
         ) -> Self {
-            PeerSetSmartContractCalls::LatestPeerSetPermissionGraphIPFSPointer(
-                var,
-            )
+            PeerSetSmartContractCalls::LatestPeerSetPermissionGraphIPFSPointer(var)
         }
     }
     impl ::std::convert::From<OracleCall>

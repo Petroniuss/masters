@@ -201,16 +201,12 @@ pub mod using_peer_set_events {
         where
             Self: Sized,
         {
-            if let Ok(decoded) =
-                PeerSetPermissionGraphChangeRejectedFilter::decode_log(log)
-            {
+            if let Ok(decoded) = PeerSetPermissionGraphChangeRejectedFilter::decode_log(log) {
                 return Ok(
                     UsingPeerSetEventsEvents::PeerSetPermissionGraphChangeRejectedFilter(decoded),
                 );
             }
-            if let Ok(decoded) =
-                PeerSetPermissionGraphChangeRequestFilter::decode_log(log)
-            {
+            if let Ok(decoded) = PeerSetPermissionGraphChangeRequestFilter::decode_log(log) {
                 return Ok(
                     UsingPeerSetEventsEvents::PeerSetPermissionGraphChangeRequestFilter(decoded),
                 );

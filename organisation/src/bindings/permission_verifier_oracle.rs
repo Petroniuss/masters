@@ -262,9 +262,7 @@ pub mod permission_verifier_oracle {
                     PermissionVerifierOracleEvents::PermissionGraphChangeValidatedFilter(decoded),
                 );
             }
-            if let Ok(decoded) =
-                PermissionGraphValidationRequestedFilter::decode_log(log)
-            {
+            if let Ok(decoded) = PermissionGraphValidationRequestedFilter::decode_log(log) {
                 return Ok(
                     PermissionVerifierOracleEvents::PermissionGraphValidationRequestedFilter(
                         decoded,
@@ -360,9 +358,7 @@ pub mod permission_verifier_oracle {
             ethers::core::abi::AbiError,
         > {
             if let Ok(decoded) =
-                <RequestsCall as ethers::core::abi::AbiDecode>::decode(
-                    data.as_ref(),
-                )
+                <RequestsCall as ethers::core::abi::AbiDecode>::decode(data.as_ref())
             {
                 return Ok(PermissionVerifierOracleCalls::Requests(decoded));
             }

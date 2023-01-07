@@ -200,9 +200,7 @@ pub mod permission_verifier_oracle_api {
                     ),
                 );
             }
-            if let Ok(decoded) =
-                PermissionGraphValidationRequestedFilter::decode_log(log)
-            {
+            if let Ok(decoded) = PermissionGraphValidationRequestedFilter::decode_log(log) {
                 return Ok(
                     PermissionVerifierOracleAPIEvents::PermissionGraphValidationRequestedFilter(
                         decoded,

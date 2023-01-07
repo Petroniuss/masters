@@ -68,7 +68,7 @@ jobs:
       - name: cargo run start-the-world
         working-directory: ./organisation
         run: >
-          cargo run --example start-the-world
+          cargo run --bin start-the-world
 
       - name: curl
         run: curl localhost:8545 || echo "pinging localhost 8545"

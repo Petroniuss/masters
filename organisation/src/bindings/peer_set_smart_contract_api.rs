@@ -247,18 +247,14 @@ pub mod peer_set_smart_contract_api {
         where
             Self: Sized,
         {
-            if let Ok(decoded) =
-                PeerSetPermissionGraphChangeRejectedFilter::decode_log(log)
-            {
+            if let Ok(decoded) = PeerSetPermissionGraphChangeRejectedFilter::decode_log(log) {
                 return Ok(
                     PeerSetSmartContractAPIEvents::PeerSetPermissionGraphChangeRejectedFilter(
                         decoded,
                     ),
                 );
             }
-            if let Ok(decoded) =
-                PeerSetPermissionGraphChangeRequestFilter::decode_log(log)
-            {
+            if let Ok(decoded) = PeerSetPermissionGraphChangeRequestFilter::decode_log(log) {
                 return Ok(
                     PeerSetSmartContractAPIEvents::PeerSetPermissionGraphChangeRequestFilter(
                         decoded,
@@ -388,16 +384,11 @@ pub mod peer_set_smart_contract_api {
             ethers::core::abi::AbiError,
         > {
             if let Ok(decoded) =
-                <CallbackCall as ethers::core::abi::AbiDecode>::decode(
-                    data.as_ref(),
-                )
+                <CallbackCall as ethers::core::abi::AbiDecode>::decode(data.as_ref())
             {
                 return Ok(PeerSetSmartContractAPICalls::Callback(decoded));
             }
-            if let Ok(decoded) =
-                <IsPeerCall as ethers::core::abi::AbiDecode>::decode(
-                    data.as_ref(),
-                )
+            if let Ok(decoded) = <IsPeerCall as ethers::core::abi::AbiDecode>::decode(data.as_ref())
             {
                 return Ok(PeerSetSmartContractAPICalls::IsPeer(decoded));
             }

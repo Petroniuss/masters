@@ -1,5 +1,4 @@
 extern crate organisation;
-
 use crate::organisation::data_model::peer_set::{
     Peer, PeerSet,
 };
@@ -57,17 +56,28 @@ fn peer_set_graph_ipfs_pointer() -> String {
         .to_string();
 }
 
-/// This should demonstrate how to boostrap a couple of peer-sets on blockchain.
-/// Ideally the way it should work - we should subscribe to the events from the blockchain
-/// and build our local state based on the events/transactions on the ledger.
+/// This demonstrates how to:
+/// - deploy an oracle
+/// - boostrap a peer-set smart contract
+/// todo: it should also deploy an initial peer_set graph to IPFS.
+/// todo: this should assume that the oracle and peer-broadcast sc are already deployed.
 #[tokio::main]
 async fn main() -> Result<()> {
     color_eyre::install()?;
     pretty_env_logger::init();
 
-    info!("Starting the world");
     let executing_organisation = executing_organisation()?;
+    info!(
+        "Organisation {} is starting the world",
+        executing_organisation.address()
+    );
+
     let peer_set = example_peer_set_with_two_peers()?;
+    info!(
+        "Organisation {} bootstraps {:?}",
+        executing_organisation.address(),
+        peer_set
+    );
 
     let ethereum_client =
         ethereum_client::crate_local_ethereum_client(

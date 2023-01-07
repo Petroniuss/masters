@@ -11,10 +11,13 @@
   - [x] the simplest possible implementation of [peer-set smart contract](./blockchain/src/peer-set)
     and an [oracle](./blockchain/src/oracle).
   - [x] [test suite](./blockchain/test/PeerSet.t.sol) for the peer-set smart contract and oracle.
+  - [x] [peer-broadcast](./blockchain/src/peer-broadcast) - smart contract for registering peers and peersets.
 - [organisation](./organisation)
-  - [start-the-world](./organisation/examples/start-the-world):
-    - [x] deployment of a peer-set smart contract.
-    - [ ] deployment of an oracle.
+  - [start-the-world](./organisation/src/bin/start-the-world):
+    - [x] deployment of oracle smart contract.
+    - [x] deployment of peer-broadcast smart contract.
+  - [propose-a-change](./organisation/examples/propose-a-change):
+    - [ ] propose a change to existing peer-set smart contract.
   - [ ] listening to events from the peer-set smart contracts.
   - [ ] listening to events from the oracle to validate results.
   - [ ] validating incoming permission graph change requests:
@@ -22,6 +25,8 @@
   - [ ] test suite for the peer-set smart contract and oracle from off-chain code.
 
 ## Local Dev Setup
+
+todo: adjust function modifiers public/external..
 
 ### blockchain
 For developing smart contracts I've chosen [foundry](https://github.com/foundry-rs/foundry). 
@@ -93,7 +98,7 @@ export RUST_BACKTRACE=full
 
 To run start-the-world, run:
 ```bash
-cargo run --example start-the-world
+cargo run --bin start-the-world
 ```
 
 To run unit tests, run:
@@ -104,7 +109,7 @@ cargo test
 Integration tests are marked as `#[ignored]` and have 'integration_test' suffix. 
 To run integration tests, run:
 ```bash
-export RUST_LOG=INFO && cargo integration-tests
+cargo integration-tests
 ```
 
 To run application via docker, run:
