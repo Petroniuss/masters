@@ -41,21 +41,19 @@ jobs:
           workspaces: organisation
 
       - name: cargo build
-        run: >
-          cargo check
-          --manifest-path=organisation/Cargo.toml
+        working-directory: ./organisation
+        run: cargo check
 
       - name: cargo test
-        run: >
-          cargo test
-          --manifest-path=organisation/Cargo.toml
+        working-directory: ./organisation
+        run: cargo test
 
       - name: cargo build examples
-        run: >
-          cargo build --examples
-          --manifest-path=organisation/Cargo.toml
+        working-directory: ./organisation
+        run: cargo build --examples
 
       - name: forge tests verbose
+        working-directory: ./blockchain
         run: >
           forge test -vvvvv
           --root=blockchain
@@ -68,15 +66,16 @@ jobs:
           docker logs masters-blockchain
 
       - name: cargo run start-the-world
+        working-directory: ./organisation
         run: >
           cargo run --example start-the-world
-          --manifest-path=organisation/Cargo.toml
 
       - name: curl
         run: curl localhost:8545 || echo "pinging localhost 8545"
 
       - name: integration tests
-        run: cargo test --manifest-path=organisation/Cargo.toml -- --ignored --nocapture
+        working-directory: ./organisation
+        run: cargo integration-tests
 
       - name: tear down local anvil node
         run: docker-compose down
