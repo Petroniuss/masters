@@ -101,9 +101,10 @@ To run unit tests, run:
 cargo test
 ```
 
-Integration tests are marked as `#[ignored]`. To run integration tests, run:
+Integration tests are marked as `#[ignored]` and have 'integration_test' suffix. 
+To run integration tests, run:
 ```bash
-export RUST_LOG=INFO && cargo test -- --ignored --nocapture
+export RUST_LOG=INFO && cargo integration-tests
 ```
 
 To run application via docker, run:
