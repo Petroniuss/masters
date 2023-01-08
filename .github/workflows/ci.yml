@@ -48,3 +48,27 @@ jobs:
           cache-to: type=gha,mode=max
           tags: petroniuss/masters-anvil:latest
           push: true
+
+      - name: run local anvil node
+        run: >
+          docker-compose up -d && 
+          docker logs masters-anvil
+
+      - name: start-the-world
+        run: >
+          docker run 
+          --network host 
+          -e RUST_LOG=INFO 
+          petroniuss/masters-organisation:latest
+          start-the-world
+
+      - name: register-peer-set
+        run: >
+          docker run 
+          --network host 
+          -e RUST_LOG=INFO 
+          petroniuss/masters-organisation:latest
+          start-the-world
+
+      - name: tear down local anvil node
+        run: docker-compose down

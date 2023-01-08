@@ -3,6 +3,6 @@ version: "3.3"
 services:
   anvil:
     container_name: masters-anvil
-    image: masters/anvil:latest
+    image: petroniuss/masters-anvil:latest
     ports:
       - "8545:8545"
