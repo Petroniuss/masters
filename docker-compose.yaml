@@ -3,6 +3,7 @@ version: "3.3"
 services:
   anvil:
     container_name: masters-anvil
+    image: masters/anvil:latest
     build: ./anvil
     ports:
       - "8545:8545"
@@ -10,6 +11,7 @@ services:
   blockchain:
     container_name: start-the-world
     network_mode: host
+    image: masters/organisation:latest
     build: ./organisation
     environment:
       - RUST_LOG=info
