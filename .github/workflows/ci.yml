@@ -61,14 +61,14 @@ jobs:
       - name: run local anvil node and deploy smart contract
         run: >
           docker-compose up -d --build && 
-          docker wait masters-blockchain &&
-          docker logs masters-anvil &&
-          docker logs masters-blockchain
+          docker wait start-the-world &&
+          docker logs start-the-world &&
+          docker logs masters-anvil
 
-      - name: cargo run start-the-world
+      - name: cargo run register-peer-set
         working-directory: ./organisation
         run: >
-          cargo run --bin start-the-world
+          cargo run --bin register-peer-set
 
       - name: curl
         run: curl localhost:8545 || echo "pinging localhost 8545"

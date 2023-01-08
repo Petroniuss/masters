@@ -118,6 +118,10 @@ docker build -t organisation .
 dokcer run organisation
 ```
 
-### ipfs
-
 ### Miscellaneous
+For building docker images, I use [buildkit](https://docs.docker.com/build/buildkit/).
+To enable it:
+```bash
+export DOCKER_BUILDKIT=1
+```
+

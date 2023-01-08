@@ -86,8 +86,13 @@ mod tests {
     use log::info;
     use test_log::test;
 
+    // #[test]
+    // fn example_2() {
+    //     assert_eq!(true, false);
+    // }
+
     #[test]
-    fn example() {
+    fn example_test() {
         let mut g = PermissionGraph::new();
 
         let org1 = "ORG_1";

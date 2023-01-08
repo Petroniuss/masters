@@ -15,8 +15,8 @@ RUN --mount=type=cache,target=~/.cargo \
     echo "fn main() { println!(\"Hello, world!\"); }" > src/main.rs
     mkdir -p src/bin/start-the-world/
     echo "fn main() { println!(\"Hello, world!\"); }" > src/bin/start-the-world/main.rs
-    mkdir -p examples/start-the-world/
-    echo "fn main() { println!(\"Hello, world!\"); }" > examples/start-the-world/main.rs
+    mkdir -p src/bin/register-peer-set/
+    echo "fn main() { println!(\"Hello, world!\"); }" > src/bin/register-peer-set/main.rs
 EOF
 
 # build dependencies

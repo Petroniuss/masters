@@ -10,9 +10,7 @@ use organisation::on_chain::contract_deployment::{
     OracleSmartContractDeployment,
     PeerBroadcastSmartContractDeployment,
 };
-use organisation::on_chain::{
-    contract_deployment, ethereum_client,
-};
+use organisation::on_chain::ethereum_client;
 
 use std::sync::Arc;
 
@@ -51,19 +49,11 @@ async fn main() -> Result<()> {
             executing_organisation.clone(),
         )?;
 
-    let contract_deployment_service =
-        contract_deployment::SmartContractDeploymentService {
-            executing_organisation: executing_organisation
-                .clone(),
-            ethereum_client: ethereum_client.clone(),
-        };
+    let _permission_verifier_oracle = ethereum_client
+        .deploy_permission_verifier_oracle()
+        .await?;
 
-    let _permission_verifier_oracle =
-        contract_deployment_service
-            .deploy_permission_verifier_oracle()
-            .await?;
-
-    let _peer_broadcast_sc = contract_deployment_service
+    let _peer_broadcast_sc = ethereum_client
         .deploy_peer_broadcast_smart_contract()
         .await?;
 

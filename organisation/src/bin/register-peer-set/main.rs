@@ -1,21 +1,24 @@
-extern crate organisation;
-use crate::organisation::data_model::peer_set::{
-    Peer, PeerSet,
-};
-use crate::organisation::errors::Result;
-use crate::organisation::on_chain::contract_deployment::PeerSetSmartContractDeployment;
-use crate::organisation::on_chain::{
-    contract_deployment, ethereum_client,
-};
 use ethers::abi::Address;
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
+
 use organisation::data_model::organisation::{
     ExecutingOrganisation, Organisation,
 };
-use organisation::on_chain::contract_deployment::OracleSmartContractDeployment;
+use organisation::data_model::peer_set::{Peer, PeerSet};
+use organisation::errors::Result;
+
+use organisation::on_chain::ethereum_client::ToEthereumClientEnriched;
+
+use organisation::on_chain::ethereum_client;
+use organisation::on_chain::peer_broadcast_sc::PeerBroadcastService;
 use std::str::FromStr;
 use std::sync::Arc;
+
+static ORACLE_CONTRACT_ADDRESS: &'static str =
+    "0xbf5a1966ed793a7ca90878701e410463836bb366";
+static PEER_BROADCAST_CONTRACT_ADDRESS: &'static str =
+    "0x19800ab132174a00e2ab1434678bbc34554cb915";
 
 fn example_peer_set_with_two_peers() -> Result<PeerSet> {
     Ok(PeerSet {
@@ -43,7 +46,7 @@ fn executing_organisation() -> Result<Arc<ExecutingOrganisation>>
 
     Ok(Arc::new(ExecutingOrganisation {
         organisation: Organisation {
-            name: "ORG_A".to_string(),
+            name: "peer-1".to_string(),
             ethereum_address: wallet.address(),
         },
         wallet,
@@ -67,14 +70,9 @@ async fn main() -> Result<()> {
     pretty_env_logger::init();
 
     let executing_organisation = executing_organisation()?;
-    info!(
-        "Organisation {} is starting the world",
-        executing_organisation.address()
-    );
-
     let peer_set = example_peer_set_with_two_peers()?;
     info!(
-        "Organisation {} bootstraps {:?}",
+        "Organisation {} is registering a peer-set: {:?}",
         executing_organisation.address(),
         peer_set
     );
@@ -84,22 +82,24 @@ async fn main() -> Result<()> {
             executing_organisation.clone(),
         )?;
 
-    let contract_deployment_service =
-        contract_deployment::SmartContractDeploymentService {
-            executing_organisation: executing_organisation
-                .clone(),
-            ethereum_client: ethereum_client.clone(),
-        };
+    let ethereum_client = Arc::new(ethereum_client);
 
-    let permission_verifier_oracle =
-        contract_deployment_service
-            .deploy_permission_verifier_oracle()
-            .await?;
+    let enriched_client = ethereum_client.to_enriched_client(
+        PEER_BROADCAST_CONTRACT_ADDRESS,
+        ORACLE_CONTRACT_ADDRESS,
+    )?;
 
-    let _peer_set_smart_contract = contract_deployment_service
-        .deploy_peer_set_smart_contract(
+    let peer_ipfs_pointer =
+        "https://ipfs.io/ipfs/Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu"
+        .to_string();
+
+    let _peer_set_smart_contract = enriched_client
+        .register_itself(peer_ipfs_pointer)
+        .await?;
+
+    let _peer_set_smart_contract = enriched_client
+        .register_peerset(
             &peer_set,
-            &permission_verifier_oracle,
             peer_set_graph_ipfs_pointer(),
         )
         .await?;

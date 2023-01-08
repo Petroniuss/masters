@@ -14,6 +14,10 @@ path = "src/main.rs"
 name = "start-the-world"
 path = "src/bin/start-the-world/main.rs"
 
+[[bin]]
+name = "register-peer-set"
+path = "src/bin/register-peer-set/main.rs"
+
 [dependencies]
 # ethereum
 ethers = { version = "1.0.0", features = ["legacy"] }
