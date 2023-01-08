@@ -35,8 +35,8 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: ./organisation
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=petroniuss/masters-organisation:buildcache
+          cache-to: type=registry,ref=petroniuss/masters-organisation:buildcache,mode=max
           tags: petroniuss/masters-organisation:latest
           push: true
 
