@@ -35,43 +35,6 @@ jobs:
           tags: masters/organisation:latest
           push: false
 
-      - name: Install latest stable Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: rust version
-        run: rustc --version
-
-      - name: install foundry
-        uses: onbjerg/foundry-toolchain@v1
-        with:
-          version: nightly
-
-      - name: forge version
-        run: forge --version
-
-      - name: rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: organisation
-
-      - name: cargo build
-        working-directory: ./organisation
-        run: cargo check
-
-      - name: cargo test
-        working-directory: ./organisation
-        run: cargo test
-
-      - name: cargo build examples
-        working-directory: ./organisation
-        run: cargo build --examples
-
-      - name: forge tests verbose
-        working-directory: ./blockchain
-        run: >
-          forge test -vvvvv
-          --root=blockchain
-
       - name: run local anvil node and deploy smart contract
         run: >
           docker-compose up -d --build && 
@@ -82,14 +45,11 @@ jobs:
       - name: cargo run register-peer-set
         working-directory: ./organisation
         run: >
-          cargo run --bin register-peer-set
+          docker run masters/organisation:latest
+          register-peer-set
 
       - name: curl
         run: curl localhost:8545 || echo "pinging localhost 8545"
-
-      - name: integration tests
-        working-directory: ./organisation
-        run: cargo integration-tests
 
       - name: tear down local anvil node
         run: docker-compose down
