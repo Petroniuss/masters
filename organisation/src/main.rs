@@ -27,5 +27,5 @@ mod smart_contract;
 ///     - switch to Docker BuildKit in CI pipeline and integrate with docker-registry.
 ///
 fn main() {
-    println!("Ala!");
+    println!("Basia!");
 }
