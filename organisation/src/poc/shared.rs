@@ -1,19 +1,28 @@
 use crate::data_model::organisation::{
     ExecutingOrganisation, Organisation,
 };
+use crate::data_model::peer_set::{Peer, PeerSet};
 use crate::errors::Result;
 use crate::on_chain::ethereum_client;
 use crate::on_chain::ethereum_client::{
     EnrichedEthereumClient, EthereumClient,
     ToEthereumClientEnriched,
 };
+use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
+use std::str::FromStr;
 use std::sync::Arc;
 
-pub static ORACLE_CONTRACT_ADDRESS: &'static str =
-    "0x19800ab132174a00e2ab1434678bbc34554cb915";
 pub static PEER_BROADCAST_CONTRACT_ADDRESS: &'static str =
     "0xbf5a1966ed793a7ca90878701e410463836bb366";
+pub static ORACLE_CONTRACT_ADDRESS: &'static str =
+    "0x19800ab132174a00e2ab1434678bbc34554cb915";
+
+// todo: this shouldn't be hardcoded -
+// this should be taken from the peer-broadcast smart contract.
+pub static DEMO_PEER_SET_SMART_CONTRACT_ADDRESS: &'static str =
+    "0xc0d18d2a4129fec8095a1eb19ef14cc88200a4ac";
+
 pub static CHAIN_ID: u64 = 31337u64;
 
 pub fn demo_organisation_one(
@@ -32,9 +41,41 @@ pub fn demo_organisation_two(
     create_demo_organisation(name, wallet_address)
 }
 
+pub fn demo_peer_one_address() -> Address {
+    Address::from_str(
+        "0xd13c4379bfc9a0ea5e147b2d37f65eb2400dfd7b",
+    )
+    .unwrap()
+}
+
+pub fn demo_peer_two_address() -> Address {
+    Address::from_str(
+        "0xd248e4a8407ed7ff9bdbc396ba46723b8101c86e",
+    )
+    .unwrap()
+}
+
+pub fn demo_peer_set_with_two_peers() -> Result<PeerSet> {
+    Ok(PeerSet {
+        peers: vec![
+            Peer {
+                ethereum_address: demo_peer_one_address(),
+            },
+            Peer {
+                ethereum_address: demo_peer_two_address(),
+            },
+        ],
+    })
+}
+
 // todo: this should be a real pointer.
 pub fn demo_graph_ipfs_pointer() -> String {
     "https://ipfs.io/ipfs/Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu"
+        .to_string()
+}
+
+pub fn demo_peer_ipfs_pointer() -> String {
+    "https://ipfs.io/ipfs/Q43q3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu"
         .to_string()
 }
 
