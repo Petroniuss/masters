@@ -27,9 +27,8 @@ jobs:
 
       - name: Build rust image
         uses: docker/build-push-action@v3
-        working-directory: ./organisation
         with:
-          context: .
+          context: ./organisation
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: masters/organisation:latest
