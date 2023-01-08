@@ -25,14 +25,20 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Build rust image
         uses: docker/build-push-action@v3
         with:
           context: ./organisation
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: masters/organisation:latest
-          push: false
+          tags: petroniuss/masters-anvil:latest
+          push: true
 
       - name: Build anvil image
         uses: docker/build-push-action@v3
@@ -40,24 +46,5 @@ jobs:
           context: ./anvil
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: masters/anvil:latest
+          tags: petroniuss/masters-organisation:latest
           push: false
-
-      - name: run local anvil node and deploy smart contract
-        run: >
-          docker-compose up -d && 
-          docker wait start-the-world &&
-          docker logs start-the-world &&
-          docker logs masters-anvil
-
-      - name: cargo run register-peer-set
-        working-directory: ./organisation
-        run: >
-          docker run masters/organisation:latest
-          register-peer-set
-
-      - name: curl
-        run: curl localhost:8545 || echo "pinging localhost 8545"
-
-      - name: tear down local anvil node
-        run: docker-compose down
