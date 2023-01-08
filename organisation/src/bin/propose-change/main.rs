@@ -11,14 +11,22 @@ use organisation::errors::Result;
 use organisation::on_chain::ethereum_client::ToEthereumClientEnriched;
 
 use organisation::on_chain::ethereum_client;
-use organisation::on_chain::peer_broadcast_sc::PeerBroadcastService;
+
+use organisation::on_chain::peer_set_sc::PeerSetSmartContractServiceFromAddress;
 use std::str::FromStr;
 use std::sync::Arc;
+
+// todo: remove duplicate code by moving it into lib.
 
 static ORACLE_CONTRACT_ADDRESS: &'static str =
     "0xbf5a1966ed793a7ca90878701e410463836bb366";
 static PEER_BROADCAST_CONTRACT_ADDRESS: &'static str =
     "0x19800ab132174a00e2ab1434678bbc34554cb915";
+
+// todo: this shouldn't be hardcoded - this should be taken from the blockchain
+// by querying peer broadcast smart contract.
+static PEER_SET_SMART_CONTRACT_ADDRESS: &'static str =
+    "0xc0d18d2a4129fec8095a1eb19ef14cc88200a4ac";
 
 fn example_peer_set_with_two_peers() -> Result<PeerSet> {
     Ok(PeerSet {
@@ -40,7 +48,7 @@ fn example_peer_set_with_two_peers() -> Result<PeerSet> {
 fn executing_organisation() -> Result<Arc<ExecutingOrganisation>>
 {
     let wallet =
-        "2834824554106f1a77dd199dfc5456cb40091f560b3b3d2d3417bb04d04bd969"
+        "d2ef8f291387de16e7ae1875f80d3d31a4b7e6687294862ff9793d584f933a5e"
             .parse::<LocalWallet>()?
             .with_chain_id(31337u64);
 
@@ -53,10 +61,8 @@ fn executing_organisation() -> Result<Arc<ExecutingOrganisation>>
     }))
 }
 
-fn peer_set_graph_ipfs_pointer() -> String {
-    // some random pointer for now.
-    return "https://ipfs.io/ipfs/Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu"
-        .to_string();
+fn changed_ipfs_pointer() -> String {
+    return "https://ipfs.io/ipfs/updated".to_string();
 }
 
 /// This demonstrates how to:
@@ -66,13 +72,14 @@ fn peer_set_graph_ipfs_pointer() -> String {
 /// todo: this should assume that the oracle and peer-broadcast sc are already deployed.
 #[tokio::main]
 async fn main() -> Result<()> {
+    // boilerplate
     color_eyre::install()?;
     pretty_env_logger::init();
 
     let executing_organisation = executing_organisation()?;
     let peer_set = example_peer_set_with_two_peers()?;
     info!(
-        "Organisation {} is registering a peer-set: {:?}",
+        "Organisation {} is proposing a change to peer-set: {:?}",
         executing_organisation.address(),
         peer_set
     );
@@ -89,19 +96,13 @@ async fn main() -> Result<()> {
         ORACLE_CONTRACT_ADDRESS,
     )?;
 
-    let peer_ipfs_pointer =
-        "https://ipfs.io/ipfs/Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu"
-        .to_string();
+    let peer_set_smart_contract = enriched_client
+        .connect_to_peer_set_sc(
+            PEER_SET_SMART_CONTRACT_ADDRESS,
+        )?;
 
-    let _ = enriched_client
-        .register_itself(peer_ipfs_pointer)
-        .await?;
-
-    let _peer_set_smart_contract = enriched_client
-        .register_peerset(
-            &peer_set,
-            peer_set_graph_ipfs_pointer(),
-        )
+    peer_set_smart_contract
+        .propose_change(changed_ipfs_pointer())
         .await?;
 
     Ok(())

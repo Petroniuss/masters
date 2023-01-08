@@ -41,5 +41,8 @@ WORKDIR /usr/local/bin
 # note that we have multiple binaries in the same image.
 COPY --from=release /usr/local/cargo/bin/organisation .
 COPY --from=release /usr/local/cargo/bin/start-the-world .
+COPY --from=release /usr/local/cargo/bin/register-peer-set .
+COPY --from=release /usr/local/cargo/bin/propose-change .
+COPY --from=release /usr/local/cargo/bin/validate-change .
 
 CMD ["organisation"]

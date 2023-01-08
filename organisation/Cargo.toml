@@ -18,6 +18,14 @@ path = "src/bin/start-the-world/main.rs"
 name = "register-peer-set"
 path = "src/bin/register-peer-set/main.rs"
 
+[[bin]]
+name = "propose-change"
+path = "src/bin/propose-change/main.rs"
+
+[[bin]]
+name = "validate-change"
+path = "src/bin/validate-change/main.rs"
+
 [dependencies]
 # ethereum
 ethers = { version = "1.0.0", features = ["legacy"] }
