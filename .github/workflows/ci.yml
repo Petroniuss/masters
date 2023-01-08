@@ -15,6 +15,7 @@ jobs:
       CARGO_TERM_COLOR: always
       RUST_LOG: INFO
       RUST_BACKTRACE: FULL
+      COMPOSE_DOCKER_CLI_BUILD: 1
     steps:
       - name: checkout
         uses: actions/checkout@v3
