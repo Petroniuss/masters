@@ -40,6 +40,15 @@ jobs:
           tags: petroniuss/masters-organisation:latest
           push: true
 
+      - name: Build blockchain image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./blockchain
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: petroniuss/masters-blockchain:latest
+          push: false
+
       - name: Build anvil image
         uses: docker/build-push-action@v3
         with:

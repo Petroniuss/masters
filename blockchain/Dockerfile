@@ -6,5 +6,3 @@ RUN forge build --skip src --use solc:0.8.17
 COPY . .
 RUN forge build
 RUN forge test
-
-ENTRYPOINT ["sh", "./entrypoint.sh"]
