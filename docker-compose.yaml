@@ -6,13 +6,3 @@ services:
     image: masters/anvil:latest
     ports:
       - "8545:8545"
-  blockchain:
-    container_name: start-the-world
-    image: masters/organisation:latest
-    network_mode: host
-    environment:
-      - RUST_LOG=info
-    command:
-      - start-the-world
-    depends_on:
-      - anvil
