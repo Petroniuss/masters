@@ -82,6 +82,10 @@ impl OracleService {
             None => None
         })
     }
+
+    pub fn address(&self) -> Address {
+        self.smart_contract.address()
+    }
 }
 
 pub trait OracleServiceFromAddress {

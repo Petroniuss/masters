@@ -77,7 +77,23 @@ jobs:
           --network host 
           -e RUST_LOG=INFO 
           petroniuss/masters-organisation:latest
-          start-the-world
+          register-peer-set
+
+      - name: propose-change
+        run: >
+          docker run 
+          --network host 
+          -e RUST_LOG=INFO 
+          petroniuss/masters-organisation:latest
+          propose-change
+
+      - name: validate-change
+        run: >
+          docker run 
+          --network host 
+          -e RUST_LOG=INFO 
+          petroniuss/masters-organisation:latest
+          validate-change
 
       - name: tear down local anvil node
         run: docker-compose down
