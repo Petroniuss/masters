@@ -74,6 +74,10 @@ pub fn demo_graph_ipfs_pointer() -> String {
         .to_string()
 }
 
+pub fn demo_updated_ipfs_pointer() -> String {
+    return "https://ipfs.io/ipfs/updated".to_string();
+}
+
 pub fn demo_peer_ipfs_pointer() -> String {
     "https://ipfs.io/ipfs/Q43q3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu"
         .to_string()
