@@ -11,20 +11,28 @@ FROM chef AS builder
 COPY --from=planner /usr/masters/organisation/recipe.json recipe.json
 
 # Build dependencies - this is the caching Docker layer!
-RUN cargo chef cook --release --recipe-path recipe.json
+RUN --mount=type=cache,target=~/.cargo \
+    --mount=type=cache,target=/usr/masters/organisation/target \
+    cargo chef cook --release --recipe-path recipe.json
 
 # Build application
 COPY . .
-RUN cargo build --release
+RUN --mount=type=cache,target=~/.cargo \
+    --mount=type=cache,target=/usr/masters/organisation/target \
+    cargo build --release
 
 FROM builder as test
 
-RUN cargo test --release
+RUN --mount=type=cache,target=~/.cargo \
+    --mount=type=cache,target=/usr/masters/organisation/target \
+    cargo test --release
 
 FROM builder AS release
 
 # install the binaries
-RUN cargo install --locked --offline --frozen --path .
+RUN --mount=type=cache,target=~/.cargo \
+    --mount=type=cache,target=/usr/masters/organisation/target \
+    cargo install --locked --offline --frozen --path .
 
 # final slim image
 FROM frolvlad/alpine-glibc:alpine-3.17

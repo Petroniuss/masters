@@ -15,59 +15,69 @@ jobs:
       CARGO_TERM_COLOR: always
       RUST_LOG: INFO
       RUST_BACKTRACE: FULL
+      COMPOSE_DOCKER_CLI_BUILD: 1
     steps:
       - name: checkout
         uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      - name: Install latest stable Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      - name: rust version
-        run: rustc --version
-
-      - name: install foundry
-        uses: onbjerg/foundry-toolchain@v1
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
         with:
-          version: nightly
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: forge version
-        run: forge --version
-
-      - name: rust cache
-        uses: Swatinem/rust-cache@v2
+      - name: Build rust image
+        uses: docker/build-push-action@v3
         with:
-          workspaces: organisation
+          context: ./organisation
+          cache-from: type=registry,ref=petroniuss/masters-organisation:buildcache
+          cache-to: type=registry,ref=petroniuss/masters-organisation:buildcache,mode=max
+          tags: petroniuss/masters-organisation:latest
+          push: true
 
-      - name: cargo check
-        working-directory: ./organisation
-        run: cargo check
+      - name: Build blockchain image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./blockchain
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: petroniuss/masters-blockchain:latest
+          push: false
 
-      - name: cargo test
-        working-directory: ./organisation
-        run: cargo test
-
-      - name: forge tests verbose
-        working-directory: ./blockchain
-        run: >
-          forge test -vvvvv
-          --root=blockchain
+      - name: Build anvil image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./anvil
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: petroniuss/masters-anvil:latest
+          push: true
 
       - name: run local anvil node
         run: >
-          docker-compose up -d --build && 
+          docker-compose up -d && 
           docker logs masters-anvil
 
-      - name: cargo run start-the-world
-        working-directory: ./organisation
+      - name: start-the-world
         run: >
-          cargo run --bin start-the-world
+          docker run 
+          --network host 
+          -e RUST_LOG=INFO 
+          petroniuss/masters-organisation:latest
+          start-the-world
 
-      - name: cargo run register-peer-set
-        working-directory: ./organisation
+      - name: register-peer-set
         run: >
-          cargo run --bin register-peer-set
+          docker run 
+          --network host 
+          -e RUST_LOG=INFO 
+          petroniuss/masters-organisation:latest
+          start-the-world
 
       - name: tear down local anvil node
         run: docker-compose down
