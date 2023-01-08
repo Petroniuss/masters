@@ -4,13 +4,11 @@ services:
   anvil:
     container_name: masters-anvil
     image: masters/anvil:latest
-    build: ./anvil
     ports:
       - "8545:8545"
   blockchain:
     container_name: start-the-world
     image: masters/organisation:latest
-    build: ./organisation
     network_mode: host
     environment:
       - RUST_LOG=info
