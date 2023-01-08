@@ -62,10 +62,6 @@ fn executing_organisation() -> Result<Arc<ExecutingOrganisation>>
     }))
 }
 
-fn changed_ipfs_pointer() -> String {
-    return "https://ipfs.io/ipfs/updated".to_string();
-}
-
 /// This demonstrates how to:
 /// - deploy an oracle
 /// - boostrap a peer-set smart contract
