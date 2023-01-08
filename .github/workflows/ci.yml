@@ -33,9 +33,18 @@ jobs:
           tags: masters/organisation:latest
           push: false
 
+      - name: Build anvil image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./anvil
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: masters/anvil:latest
+          push: false
+
       - name: run local anvil node and deploy smart contract
         run: >
-          docker-compose up -d --build && 
+          docker-compose up -d && 
           docker wait start-the-world &&
           docker logs start-the-world &&
           docker logs masters-anvil
