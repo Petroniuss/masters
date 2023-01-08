@@ -1,44 +1,33 @@
 # syntax=docker/dockerfile:1.4
-FROM rust:1.66.0 AS build
+FROM rust:1.66.0 AS chef
 WORKDIR /usr/masters/organisation
+RUN cargo install cargo-chef
 
-# We create a new lib and then use our own Cargo.toml
-RUN cargo init --lib .
-
-# Capture dependencies
-COPY Cargo.toml Cargo.lock ./
-
-# create dummy mains to build dependencies
-RUN --mount=type=cache,target=~/.cargo \
-    --mount=type=cache,target=/usr/masters/organisation/target <<EOF
-    set -e
-    echo "fn main() { println!(\"Hello, world!\"); }" > src/main.rs
-    mkdir -p src/bin/start-the-world/
-    echo "fn main() { println!(\"Hello, world!\"); }" > src/bin/start-the-world/main.rs
-    mkdir -p src/bin/register-peer-set/
-    echo "fn main() { println!(\"Hello, world!\"); }" > src/bin/register-peer-set/main.rs
-EOF
-
-# build dependencies
-RUN --mount=type=cache,target=~/.cargo \
-    --mount=type=cache,target=/usr/masters/organisation/target \
-    cargo build --release
-
-# copy the actual sorce code
+FROM chef AS planner
 COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
 
-# compile the source code
+FROM chef AS builder
+COPY --from=planner /usr/masters/organisation/recipe.json recipe.json
+
+# Build dependencies - this is the caching Docker layer!
+RUN --mount=type=cache,target=~/.cargo \
+    --mount=type=cache,target=/usr/masters/organisation/target \
+    cargo chef cook --release --recipe-path recipe.json
+
+# Build application
+COPY . .
 RUN --mount=type=cache,target=~/.cargo \
     --mount=type=cache,target=/usr/masters/organisation/target \
     cargo build --release
 
-FROM build as test
+FROM builder as test
 
 RUN --mount=type=cache,target=~/.cargo \
     --mount=type=cache,target=/usr/masters/organisation/target \
     cargo test --release
 
-FROM build AS release
+FROM builder AS release
 
 # install the binaries
 RUN --mount=type=cache,target=~/.cargo \

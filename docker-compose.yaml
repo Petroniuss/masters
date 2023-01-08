@@ -7,12 +7,11 @@ services:
     build: ./anvil
     ports:
       - "8545:8545"
-  # todo: make sure that docker-cache is used on CI env.
   blockchain:
     container_name: start-the-world
-    network_mode: host
     image: masters/organisation:latest
     build: ./organisation
+    network_mode: host
     environment:
       - RUST_LOG=info
     command:
