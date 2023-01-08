@@ -47,6 +47,6 @@ async-trait = "0.1.60"
 
 # testing
 [dev-dependencies]
-env_logger = "0.9.0"
+env_logger = "0.8.0"
 test-log = "0.2.11"
 pretty_assertions = "1"
