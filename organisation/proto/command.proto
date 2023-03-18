@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package command;
+
+service OrganisationDev {
+  rpc CreatePeerset (CreatePeersetRequest) returns (CreatePeersetResponse) {}
+}
+
+message CreatePeersetRequest {
+  string name = 1;
+  repeated string peers = 2;
+}
+
+message CreatePeersetResponse {
+  string deployed_peerset_smart_contract_address = 1;
+}
+

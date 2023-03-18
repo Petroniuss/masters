@@ -8,23 +8,11 @@ path = "src/lib.rs"
 
 [[bin]]
 name = "organisation"
-path = "src/main.rs"
+path = "src/bin/organisation/main.rs"
 
 [[bin]]
-name = "start-the-world"
-path = "src/bin/start-the-world/main.rs"
-
-[[bin]]
-name = "register-peer-set"
-path = "src/bin/register-peer-set/main.rs"
-
-[[bin]]
-name = "propose-change"
-path = "src/bin/propose-change/main.rs"
-
-[[bin]]
-name = "validate-change"
-path = "src/bin/validate-change/main.rs"
+name = "coordinator"
+path = "src/bin/coordinator/main.rs"
 
 [dependencies]
 # ethereum
@@ -53,8 +41,19 @@ itertools = "0.10.5"
 chrono = "0.4.23"
 async-trait = "0.1.60"
 
+# gRPC
+tonic = "0.8"
+prost = "0.11.8"
+
 # testing
 [dev-dependencies]
 env_logger = "0.9.0"
 test-log = "0.2.11"
 pretty_assertions = "1"
+
+[build-dependencies]
+tonic-build = { version = "0.8.3", optional = true }
+
+[features]
+default = []
+gen-proto = ["dep:tonic-build"]

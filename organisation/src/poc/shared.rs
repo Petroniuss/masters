@@ -25,6 +25,11 @@ pub static DEMO_PEER_SET_SMART_CONTRACT_ADDRESS: &'static str =
 
 pub static CHAIN_ID: u64 = 31337u64;
 
+pub static ORGANISATION_ONE_ADDR: &'static str =
+    "0xd13c4379bfc9a0ea5e147b2d37f65eb2400dfd7b";
+pub static ORGANISATION_TWO_ADDR: &'static str =
+    "0xd248e4a8407ed7ff9bdbc396ba46723b8101c86e";
+
 pub fn demo_organisation_one(
 ) -> Result<Arc<ExecutingOrganisation>> {
     let wallet_address = "2834824554106f1a77dd199dfc5456cb40091f560b3b3d2d3417bb04d04bd969";

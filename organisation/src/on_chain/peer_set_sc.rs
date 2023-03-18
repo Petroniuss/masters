@@ -10,7 +10,7 @@ use log::info;
 use std::str::FromStr;
 
 pub struct PeerSetSmartContractService {
-    smart_contract: PeerSetSmartContract<EthereumMiddleware>,
+    pub smart_contract: PeerSetSmartContract<EthereumMiddleware>,
 }
 
 impl PeerSetSmartContractService {

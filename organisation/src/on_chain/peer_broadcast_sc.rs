@@ -50,8 +50,6 @@ impl PeerBroadcastService for EnrichedEthereumClient {
         peer_set: &PeerSet,
         initial_graph_ipfs_pointer: String,
     ) -> Result<PeerSetSmartContract<EthereumMiddleware>> {
-        info!("Registering PeerSet {:?} with the peer broadcast smart contract...", peer_set);
-
         let peer_set_smart_contract = self
             .deploy_peer_set_smart_contract(
                 peer_set,
@@ -59,20 +57,16 @@ impl PeerBroadcastService for EnrichedEthereumClient {
             )
             .await?;
 
-        let peer_broadcast = &self.peer_broadcast_sc;
-
-        let call = peer_broadcast.register_peer_set(
-            peer_set_smart_contract.address(),
-        );
-
-        let pending_tx = call.send().await?;
-
-        info!("pending_tx: {:?}", pending_tx);
-
-        let _receipt =
-            pending_tx.confirmations(1).await?.unwrap();
-
-        info!("Registered peer set.");
+        // let peer_broadcast = &self.peer_broadcast_sc;
+        //
+        // let call = peer_broadcast.register_peer_set(
+        //     peer_set_smart_contract.address(),
+        // );
+        //
+        // let pending_tx = call.send().await?;
+        //
+        // let _receipt =
+        //     pending_tx.confirmations(1).await?.unwrap();
 
         Ok(peer_set_smart_contract)
     }

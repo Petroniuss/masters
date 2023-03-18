@@ -81,6 +81,12 @@ forge bind \
   --overwrite
 ```
 
+To generate gRPC code, run:
+
+```bash
+cargo build --release --features gen-proto
+```
+
 To deploy smart contracts to local anvil node, run:
 
 ```bash
@@ -141,12 +147,9 @@ docker build -t organisation .
 dokcer run organisation
 ```
 
-### Miscellaneous
-
 For building docker images, I use [buildkit](https://docs.docker.com/build/buildkit/).
 To enable it:
 
 ```bash
 export DOCKER_BUILDKIT=1
 ```
-

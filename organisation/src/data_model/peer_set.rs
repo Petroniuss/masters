@@ -5,6 +5,11 @@ pub struct PeerSet {
     pub peers: Vec<Peer>,
 }
 
+pub struct DeployedPeerSet {
+    pub address: Address,
+    pub peers: Vec<Peer>,
+}
+
 #[derive(Clone, Debug)]
 pub struct Peer {
     pub ethereum_address: Address,
