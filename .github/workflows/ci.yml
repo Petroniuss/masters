@@ -63,37 +63,7 @@ jobs:
           docker-compose up -d && 
           docker logs masters-anvil
 
-      - name: start-the-world
-        run: >
-          docker run 
-          --network host 
-          -e RUST_LOG=INFO 
-          petroniuss/masters-organisation:latest
-          start-the-world
-
-      - name: register-peer-set
-        run: >
-          docker run 
-          --network host 
-          -e RUST_LOG=INFO 
-          petroniuss/masters-organisation:latest
-          register-peer-set
-
-      - name: propose-change
-        run: >
-          docker run 
-          --network host 
-          -e RUST_LOG=INFO 
-          petroniuss/masters-organisation:latest
-          propose-change
-
-      - name: validate-change
-        run: >
-          docker run 
-          --network host 
-          -e RUST_LOG=INFO 
-          petroniuss/masters-organisation:latest
-          validate-change
+      # todo: run coordinator with a couple of peers.
 
       - name: tear down local anvil node
         run: docker-compose down

@@ -3,15 +3,69 @@ syntax = "proto3";
 package command;
 
 service OrganisationDev {
+  /// create s a new peerset with a set of peers.
   rpc CreatePeerset (CreatePeersetRequest) returns (CreatePeersetResponse) {}
+
+  // notify peer that a new peerset has been created,
+  rpc PeersetCreated (PeersetCreatedRequest) returns (PeersetCreatedResponse) {}
+
+  // triggers process of proposing a change to the permission graph.
+  rpc ProposeChange (ProposeChangeRequest) returns (ProposeChangeResponse) {}
 }
 
 message CreatePeersetRequest {
   string name = 1;
   repeated string peers = 2;
+  PermissionGraph initial_permission_graph = 3;
 }
 
 message CreatePeersetResponse {
   string deployed_peerset_smart_contract_address = 1;
 }
 
+
+
+message PeersetCreatedRequest {
+  string deployed_peerset_smart_contract_address = 1;
+}
+
+message PeersetCreatedResponse {}
+
+
+message ProposeChangeRequest {
+  string peerset_address = 1;
+  PermissionGraph new_permission_graph = 2;
+}
+
+message ProposeChangeResponse {
+  string proposed_change_id = 1;
+}
+
+
+message PermissionGraph {
+  map<string, Edges> edges = 1;
+}
+
+message Edges {
+  Node source = 1;
+  repeated Edge edges = 2;
+}
+
+message Node {
+  string id = 1;
+  NodeType type = 2;
+  // needed for entities managed by different peersets.
+  optional string peerset_address = 3;
+}
+
+enum NodeType {
+  USER = 0;
+  GROUP = 1;
+  ASSET = 2;
+}
+
+message Edge {
+  string destination_node_id = 1;
+  // todo: this should probably be something more sophisticated for now let's just make it a string.
+  string permission = 2;
+}

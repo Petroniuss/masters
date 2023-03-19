@@ -1,27 +1,30 @@
-use std::sync::{Arc, Mutex};
-use color_eyre::Report;
 use ethers::types::Address;
-use itertools::Itertools;
 use grpc::command::organisation_dev_server::OrganisationDev;
-use log::info;
+
+use log::{info, warn};
 use organisation::data_model::peer_set::{Peer, PeerSet};
 use organisation::errors::Result;
 use organisation::grpc;
-use organisation::grpc::command::organisation_dev_client::OrganisationDevClient;
+
 use organisation::grpc::command::organisation_dev_server::OrganisationDevServer;
 use organisation::grpc::command::{
     CreatePeersetRequest, CreatePeersetResponse,
+    PeersetCreatedRequest, PeersetCreatedResponse,
+    ProposeChangeRequest, ProposeChangeResponse,
 };
 use organisation::on_chain::ethereum_client::EnrichedEthereumClient;
 use organisation::on_chain::peer_broadcast_sc::PeerBroadcastService;
+use organisation::on_chain::peer_set_sc::{
+    PeerSetSmartContractService,
+    PeerSetSmartContractServiceFromAddress,
+};
 use organisation::poc::shared::{
     create_demo_client, demo_graph_ipfs_pointer,
-    demo_organisation_one, demo_peer_set_with_two_peers,
-    shared_init,
+    demo_organisation_one, shared_init,
 };
-use tonic::transport::{Endpoint, Server};
+use std::sync::{Arc, Mutex};
+use tonic::transport::Server;
 use tonic::{Request, Response, Status};
-use organisation::on_chain::peer_set_sc::PeerSetSmartContractService;
 
 /// Rough Plan:
 /// Organisation should run in test-mode and listen for commands from the outside.
@@ -73,10 +76,12 @@ pub struct OrganisationDevService {
 }
 
 /// This struct will be used to record the state of the organisation.
+/// mutex should probably be moved to the service?.
+/// Maybe we could instead use some sort of actor model?
 struct PeersetsLocalRegistry {
-    peersets: Arc<Mutex<Vec<
-        Arc<Mutex<PeerSetSmartContractService>>
-    >>>
+    peersets: Arc<
+        Mutex<Vec<Arc<Mutex<PeerSetSmartContractService>>>>,
+    >,
 }
 
 impl PeersetsLocalRegistry {
@@ -86,19 +91,38 @@ impl PeersetsLocalRegistry {
         }
     }
 
-    fn find_by_address(&self, peerset_address: Address) -> Option<Arc<Mutex<PeerSet>>> {
+    // todo: deadcode!!
+    #[allow(dead_code)]
+    fn find_by_address(
+        &self,
+        peerset_address: Address,
+    ) -> Option<Arc<Mutex<PeerSetSmartContractService>>> {
         self.peersets
             .lock()
             .unwrap()
             .iter()
-            .find(|x| x.address == peerset_address)
-            .cloned()
+            .find(|x| {
+                x.lock().unwrap().address() == peerset_address
+            })
+            .map(|x| Arc::clone(x))
     }
 
-    fn add(&self, peerset_service: PeerSetSmartContractService) {
-        self.peersets.lock().unwrap().push(Arc::new(
-            Mutex::new(peerset_service))
-        );
+    fn add(
+        &self,
+        peerset_service: PeerSetSmartContractService,
+    ) {
+        let address = peerset_service.address();
+        let mut guard = self.peersets.lock().unwrap();
+
+        if guard
+            .iter()
+            .any(|x| x.lock().unwrap().address() == address)
+        {
+            warn!("Peerset already exists in local registry, duplicate detected: {}", address);
+            return;
+        }
+
+        guard.push(Arc::new(Mutex::new(peerset_service)));
     }
 }
 
@@ -114,16 +138,23 @@ impl OrganisationDevService {
         &self,
         request: CreatePeersetRequest,
     ) -> Result<CreatePeersetResponse> {
-        fn sanitize_peerset_request(request: &CreatePeersetRequest) -> Result<PeerSet> {
+        fn sanitize_peerset_request(
+            request: &CreatePeersetRequest,
+        ) -> Result<PeerSet> {
             let peers = request
                 .peers
-                .into_iter()
-                .map(|x| Ok(Peer {
-                    ethereum_address: x.parse()?,
-                }))
+                .iter()
+                .map(|x| {
+                    Ok(Peer {
+                        ethereum_address: x.parse()?,
+                    })
+                })
                 .collect::<Result<Vec<_>>>()?;
             Ok(PeerSet { peers })
         }
+
+        // todo: upload graph to ipfs.
+        // and register peerset with bootstrapped graph.
 
         let peer_set = sanitize_peerset_request(&request)?;
         let smart_contract = self
@@ -134,16 +165,41 @@ impl OrganisationDevService {
             )
             .await?;
 
-        let peerset_service = PeerSetSmartContractService {
-            smart_contract,
-        };
+        let address = smart_contract.address().to_string();
+        let peerset_service =
+            PeerSetSmartContractService { smart_contract };
 
         self.local_registry.add(peerset_service);
 
         Ok(CreatePeersetResponse {
-            deployed_peerset_smart_contract_address: smart_contract.address().to_string(),
+            deployed_peerset_smart_contract_address: address,
         })
     }
+
+    fn peerset_created_impl(
+        &self,
+        request: PeersetCreatedRequest,
+    ) -> Result<PeersetCreatedResponse> {
+        let address =
+            &request.deployed_peerset_smart_contract_address;
+
+        let smart_contract = self
+            .ethereum_client
+            .connect_to_peer_set_sc(address)?;
+
+        self.local_registry.add(smart_contract);
+        // todo: should also subscribe to peerset smart contract events.
+
+        Ok(PeersetCreatedResponse {})
+    }
+}
+
+fn handle_err<T>(
+    result: Result<T>,
+) -> std::result::Result<Response<T>, Status> {
+    result
+        .map(|x| Response::new(x))
+        .map_err(|e| Status::internal(e.to_string()))
 }
 
 #[tonic::async_trait]
@@ -156,11 +212,36 @@ impl OrganisationDev for OrganisationDevService {
         Status,
     > {
         info!("Creating a peerset: {:?}", request);
-        // todo graph structure should be part of a request to create a peerset.
 
-        self.create_peerset_impl(request.into_inner())
-            .await
-            .map(|x| Response::new(x))
-            .map_err(|e| Status::internal(e.to_string()))
+        let result = self
+            .create_peerset_impl(request.into_inner())
+            .await;
+
+        handle_err(result)
+    }
+
+    async fn peerset_created(
+        &self,
+        request: Request<PeersetCreatedRequest>,
+    ) -> std::result::Result<
+        Response<PeersetCreatedResponse>,
+        Status,
+    > {
+        info!("Peerset created: {:?}", request);
+
+        let result =
+            self.peerset_created_impl(request.into_inner());
+
+        handle_err(result)
+    }
+
+    async fn propose_change(
+        &self,
+        _request: Request<ProposeChangeRequest>,
+    ) -> std::result::Result<
+        Response<ProposeChangeResponse>,
+        Status,
+    > {
+        todo!()
     }
 }
