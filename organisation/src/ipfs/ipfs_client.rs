@@ -2,9 +2,9 @@ use crate::errors::Result;
 use crate::grpc::command::PermissionGraph;
 use prost::Message;
 
-struct IPFSClientFacade {}
+pub struct IPFSClientFacade {}
 
-type CID = String;
+pub type CID = String;
 
 impl IPFSClientFacade {
     pub async fn upload_permission_graph(

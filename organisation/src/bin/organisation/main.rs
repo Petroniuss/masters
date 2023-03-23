@@ -23,8 +23,10 @@ use organisation::poc::shared::{
     demo_organisation_one, shared_init,
 };
 use std::sync::{Arc, Mutex};
+use color_eyre::eyre::eyre;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
+use organisation::ipfs::ipfs_client::IPFSClientFacade;
 
 /// Rough Plan:
 /// Organisation should run in test-mode and listen for commands from the outside.
@@ -73,6 +75,8 @@ pub struct OrganisationDevService {
 
     // all peersets that this organisation is part of.
     local_registry: PeersetsLocalRegistry,
+
+    ipfs_client: IPFSClientFacade,
 }
 
 /// This struct will be used to record the state of the organisation.
@@ -126,9 +130,12 @@ impl PeersetsLocalRegistry {
     }
 }
 
+// todo: refactor to use dependency injection/traits so that we can unit test this!
+// todo: this should instead emit events to ProtocolFacade!
 impl OrganisationDevService {
     fn new(ethereum_client: EnrichedEthereumClient) -> Self {
         OrganisationDevService {
+            ipfs_client: IPFSClientFacade { },
             ethereum_client,
             local_registry: PeersetsLocalRegistry::new(),
         }
@@ -192,6 +199,32 @@ impl OrganisationDevService {
 
         Ok(PeersetCreatedResponse {})
     }
+
+    async fn propose_change_impl(&self,
+                                 request: ProposeChangeRequest
+    ) -> Result<ProposeChangeResponse>{
+        let peerset_address = request.peerset_address;
+
+        let new_cid = self.ipfs_client.upload_permission_graph(
+            request.new_permission_graph.unwrap()
+        ).await?;
+
+
+
+        // now we need to propose a change through peerset smart contract.
+        // let peerset_service = self.local_registry.find_by_address(peerset_address.into()?)
+        //     .ok_or_else(|| eyre!("Peerset not found in local registry: {}", peerset_address))?;
+        //
+        // // todo: locking should be moved to the service!
+        // let _lock = peerset_service.lock()?;
+        // _lock.propose_change(new_cid).await?;
+
+        // now we need to wait for the protocol to finish executing
+        // and hopefully emit some event that we can listen to.
+
+
+        panic!();
+    }
 }
 
 fn handle_err<T>(
@@ -237,11 +270,15 @@ impl OrganisationDev for OrganisationDevService {
 
     async fn propose_change(
         &self,
-        _request: Request<ProposeChangeRequest>,
+        request: Request<ProposeChangeRequest>,
     ) -> std::result::Result<
         Response<ProposeChangeResponse>,
         Status,
     > {
+        info!("Proposing a change: {:?}", request);
+
+
+
         todo!()
     }
 }
