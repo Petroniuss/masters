@@ -5,9 +5,7 @@ use std::collections::HashMap;
 use tonic::transport::Endpoint;
 
 use organisation::grpc;
-use organisation::grpc::command::{
-    Edge, Edges, Node, NodeType, PermissionGraph,
-};
+use organisation::grpc::command::{Edge, Edges, Node, NodeType, PermissionGraph};
 use organisation::poc::shared;
 use organisation::poc::shared::shared_init;
 
@@ -68,18 +66,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let response = client_1
-        .create_peerset(tonic::Request::new(
-            command::CreatePeersetRequest {
-                name: "p1".to_string(),
-                peers: vec![
-                    shared::ORGANISATION_ONE_ADDR.to_string(),
-                    shared::ORGANISATION_TWO_ADDR.to_string(),
-                ],
-                initial_permission_graph: Some(
-                    permission_graph_p1_v1.clone(),
-                ),
-            },
-        ))
+        .create_peerset(tonic::Request::new(command::CreatePeersetRequest {
+            name: "p1".to_string(),
+            peers: vec![
+                shared::ORGANISATION_ONE_ADDR.to_string(),
+                shared::ORGANISATION_TWO_ADDR.to_string(),
+            ],
+            initial_permission_graph: Some(permission_graph_p1_v1.clone()),
+        }))
         .await?;
     info!("Create peerset response={:?}", response);
     let peerset_address = response
@@ -88,14 +82,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // instead we could have a separate smart contract where all peersets are registered.
     let response = client_2
-        .peerset_created(tonic::Request::new(
-            command::PeersetCreatedRequest {
-                deployed_peerset_smart_contract_address:
-                    peerset_address.clone(),
-            },
-        ))
+        .peerset_created(tonic::Request::new(command::PeersetCreatedRequest {
+            deployed_peerset_smart_contract_address: peerset_address.clone(),
+        }))
         .await?;
-    info!("Notify peer2 that peerset PS-1 has been created = response{:?}", response);
+    info!(
+        "Notify peer2 that peerset PS-1 has been created = response{:?}",
+        response
+    );
 
     // adds a new user that also belongs to the gr_1
     let permission_graph_p1_v2 = {
@@ -122,14 +116,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Now propose a change, sync request waits for change to be either accepted or rejected.
     info!("Peer 2 proposes a change to peerset (p1)");
     let response = client_2
-        .propose_change(tonic::Request::new(
-            command::ProposeChangeRequest {
-                peerset_address,
-                new_permission_graph: Some(
-                    permission_graph_p1_v2,
-                ),
-            },
-        ))
+        .propose_change(tonic::Request::new(command::ProposeChangeRequest {
+            peerset_address,
+            new_permission_graph: Some(permission_graph_p1_v2),
+        }))
         .await?;
     info!(
         "Reached consensus on proposed change = response{:?}",

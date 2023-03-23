@@ -7,10 +7,7 @@ pub struct IPFSClientFacade {}
 pub type CID = String;
 
 impl IPFSClientFacade {
-    pub async fn upload_permission_graph(
-        &self,
-        permission_graph: PermissionGraph,
-    ) -> Result<CID> {
+    pub async fn upload_permission_graph(&self, permission_graph: PermissionGraph) -> Result<CID> {
         let mut buf = vec![];
         permission_graph.encode(&mut buf)?;
 
@@ -20,9 +17,7 @@ impl IPFSClientFacade {
         Ok(cid.to_string())
     }
 
-    pub async fn download_permission_graph(
-        &self,
-    ) -> Result<String> {
+    pub async fn download_permission_graph(&self) -> Result<String> {
         panic!("Not implemented yet")
     }
 }

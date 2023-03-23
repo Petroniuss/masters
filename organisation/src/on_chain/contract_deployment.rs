@@ -44,11 +44,9 @@ impl PeerSetSmartContractDeployment for EnrichedEthereumClient {
         initial_graph_ipfs_pointer: String,
     ) -> Result<PeerSetSmartContract<EthereumMiddleware>> {
         info!("Beginning deployment of the peer set smart contract...");
-        let peer_addresses =
-            peer_set.get_peer_ethereum_addresses();
+        let peer_addresses = peer_set.get_peer_ethereum_addresses();
 
-        let oracle_address =
-            self.permission_verifier_oracle.address();
+        let oracle_address = self.permission_verifier_oracle.address();
 
         let constructor_args = vec![
             peer_addresses.into_token(),
@@ -57,15 +55,15 @@ impl PeerSetSmartContractDeployment for EnrichedEthereumClient {
         ];
 
         let constructor_args = Token::Tuple(constructor_args);
-        info!("Deploying the peer set smart contract with the following arguments: {:?}", constructor_args);
+        info!(
+            "Deploying the peer set smart contract with the following arguments: {:?}",
+            constructor_args
+        );
 
-        let contract_deployer = PeerSetSmartContract::deploy(
-            self.ethereum_middleware.clone(),
-            constructor_args,
-        )?;
+        let contract_deployer =
+            PeerSetSmartContract::deploy(self.ethereum_middleware.clone(), constructor_args)?;
 
-        let peer_set_smart_contract =
-            contract_deployer.send().await?;
+        let peer_set_smart_contract = contract_deployer.send().await?;
         info!(
             "Deployed peer set smart contract: {:?}",
             peer_set_smart_contract
@@ -79,18 +77,13 @@ impl PeerSetSmartContractDeployment for EnrichedEthereumClient {
 impl OracleSmartContractDeployment for EthereumClient {
     async fn deploy_permission_verifier_oracle(
         &self,
-    ) -> Result<PermissionVerifierOracle<EthereumMiddleware>>
-    {
+    ) -> Result<PermissionVerifierOracle<EthereumMiddleware>> {
         info!("Beginning deployment of the oracle smart contract...");
         let constructor_args = Token::Tuple(vec![]);
         let contract_deployer =
-            PermissionVerifierOracle::deploy(
-                self.ethereum_middleware.clone(),
-                constructor_args,
-            )?;
+            PermissionVerifierOracle::deploy(self.ethereum_middleware.clone(), constructor_args)?;
 
-        let oracle_smart_contract =
-            contract_deployer.send().await?;
+        let oracle_smart_contract = contract_deployer.send().await?;
 
         info!(
             "Deployed oracle smart contract: {:?}",
@@ -107,13 +100,10 @@ impl PeerBroadcastSmartContractDeployment for EthereumClient {
     ) -> Result<PeerBroadcast<EthereumMiddleware>> {
         info!("Beginning deployment of the peer broadcast contract...");
         let constructor_args = Token::Tuple(vec![]);
-        let contract_deployer = PeerBroadcast::deploy(
-            self.ethereum_middleware.clone(),
-            constructor_args,
-        )?;
+        let contract_deployer =
+            PeerBroadcast::deploy(self.ethereum_middleware.clone(), constructor_args)?;
 
-        let peer_broadcast_smart_contract =
-            contract_deployer.send().await?;
+        let peer_broadcast_smart_contract = contract_deployer.send().await?;
 
         info!(
             "Deployed peer broadcast smart contract: {:?}",

@@ -5,13 +5,11 @@ use std::str::FromStr;
 use organisation::errors::Result;
 
 use organisation::on_chain::contract_deployment::{
-    OracleSmartContractDeployment,
-    PeerBroadcastSmartContractDeployment,
+    OracleSmartContractDeployment, PeerBroadcastSmartContractDeployment,
 };
 
 use organisation::poc::shared::{
-    create_base_demo_client, demo_organisation_one,
-    shared_init, ORACLE_CONTRACT_ADDRESS,
+    create_base_demo_client, demo_organisation_one, shared_init, ORACLE_CONTRACT_ADDRESS,
     PEER_BROADCAST_CONTRACT_ADDRESS,
 };
 
@@ -29,9 +27,7 @@ async fn main() -> Result<()> {
         executing_organisation
     );
 
-    let ethereum_client = create_base_demo_client(
-        executing_organisation.clone(),
-    )?;
+    let ethereum_client = create_base_demo_client(executing_organisation.clone())?;
 
     // deploy peer broadcast smart contract
     let _peer_broadcast_sc = ethereum_client
@@ -47,9 +43,7 @@ async fn main() -> Result<()> {
     );
 
     // deploy oracle smart contract
-    let _permission_verifier_oracle = ethereum_client
-        .deploy_permission_verifier_oracle()
-        .await?;
+    let _permission_verifier_oracle = ethereum_client.deploy_permission_verifier_oracle().await?;
     info!(
         "Deployed oracle smart contract to address {:?}",
         _permission_verifier_oracle.address()
