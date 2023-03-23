@@ -1,45 +1,49 @@
 use std::collections::HashMap;
-use std::sync::mpsc::Sender;
+
+use crate::core::ipfs::IPFSFacade;
 use color_eyre::eyre::eyre;
 use log::warn;
 use tokio::select;
 use tokio::sync::oneshot::error::RecvError;
 use tokio::task::JoinHandle;
-use crate::core::ipfs::IPFSFacade;
 
+use crate::errors::Result;
 use crate::grpc::command::{Node, PermissionGraph};
 use crate::ipfs::ipfs_client::CID;
-use crate::errors::Result;
-
 
 /// todo: define interface for access queries.
 /// for now let's start with something minimalistic for tests
 pub struct ProtocolFacade {
-    protocol_sender: tokio::sync::mpsc::Sender<QueryEvent>
+    protocol_sender: tokio::sync::mpsc::Sender<QueryEvent>,
 }
 
 impl ProtocolFacade {
-    pub async fn query_users_in_group(&self, group_id: String) -> std::result::Result<UsersInGroupResponse, RecvError> {
-        let (sender, receiver) = tokio::sync::oneshot::channel();
-        self.protocol_sender.send(QueryEvent::QueryUsersInGroup {
-            group_id,
-            response_channel: sender
-        }).await.expect("should succeed");
+    pub async fn query_users_in_group(
+        &self,
+        group_id: String,
+    ) -> std::result::Result<UsersInGroupResponse, RecvError>
+    {
+        let (sender, receiver) =
+            tokio::sync::oneshot::channel();
+        self.protocol_sender
+            .send(QueryEvent::QueryUsersInGroup {
+                group_id,
+                response_channel: sender,
+            })
+            .await
+            .expect("should succeed");
 
         receiver.await
     }
 }
-
-
 
 #[derive(Debug)]
 pub enum IPFSEvent {
     PermissionGraphLoaded {
         cid: CID,
         permission_graph: PermissionGraph,
-        peerset_address: String
-    }
-    // LoadingFailureEvent if cannot read the file.
+        peerset_address: String,
+    }, // LoadingFailureEvent if cannot read the file.
 }
 
 #[derive(Debug)]
@@ -63,21 +67,22 @@ enum BlockchainEvent {
 enum QueryEvent {
     QueryUsersInGroup {
         group_id: String,
-        response_channel: tokio::sync::oneshot::Sender<UsersInGroupResponse>
-    }
+        response_channel:
+            tokio::sync::oneshot::Sender<UsersInGroupResponse>,
+    },
 }
 
 #[derive(Debug)]
 pub struct UsersInGroupResponse {
     group_id: String,
-    users: Vec<Node>
+    users: Vec<Node>,
 }
 
 // enum CoordinatorEvents { }
 
 #[derive(Clone, Debug)]
 struct Peer {
-    blockchain_address: String
+    blockchain_address: String,
 }
 
 #[derive(Debug)]
@@ -88,7 +93,7 @@ enum PeerSetTransactionState {
         permission_graph: Option<PermissionGraph>,
         permission_graph_cid: CID,
         change_id: String,
-    }
+    },
 }
 
 #[derive(Debug)]
@@ -99,7 +104,7 @@ struct PeerSet {
     permission_graph_cid: CID,
     permission_graph: Option<PermissionGraph>, // todo: we probably shouldn't use type that's used in transport protocol here!
 
-    transaction_state: PeerSetTransactionState
+    transaction_state: PeerSetTransactionState,
 }
 
 /// A single thread that loops through possible events and processes them as they come in.
@@ -108,7 +113,6 @@ struct PeerSet {
 struct ProtocolService {
     ipfs_facade: Box<dyn IPFSFacade>,
     peersets: HashMap<String, PeerSet>,
-
     // todo: implement index!
 }
 
@@ -123,7 +127,7 @@ impl ProtocolService {
         mut query_events_channel: tokio::sync::mpsc::Receiver<
             QueryEvent,
         >,
-        ipfs_facade: Box<dyn IPFSFacade>
+        ipfs_facade: Box<dyn IPFSFacade>,
     ) -> JoinHandle<()> {
         let mut protocol = ProtocolService {
             ipfs_facade,
@@ -147,25 +151,40 @@ impl ProtocolService {
                 if let Err(e) = result {
                     warn!("Error occurred during processing of events: {}", e)
                 }
-            };
+            }
         });
 
         handle
     }
 
-    fn handle_query_event(&mut self, query_event: QueryEvent) -> Result<()> {
+    fn handle_query_event(
+        &mut self,
+        query_event: QueryEvent,
+    ) -> Result<()> {
         // todo: this is scrappy for now to be able to unit test what's currently implemented.
         match query_event {
-            QueryEvent::QueryUsersInGroup { group_id, response_channel } => {
+            QueryEvent::QueryUsersInGroup {
+                group_id,
+                response_channel,
+            } => {
                 let mut users = vec![];
                 for (_, peerset) in &self.peersets {
                     match peerset.permission_graph {
                         Some(ref permission_graph) => {
-                            for (_, edges) in &permission_graph.edges {
-                                if let Some(ref source) = &edges.source {
+                            for (_, edges) in
+                                &permission_graph.edges
+                            {
+                                if let Some(ref source) =
+                                    &edges.source
+                                {
                                     for edge in &edges.edges {
-                                        if edge.destination_node_id == group_id {
-                                            users.push(source.clone())
+                                        if edge
+                                            .destination_node_id
+                                            == group_id
+                                        {
+                                            users.push(
+                                                source.clone(),
+                                            )
                                         }
                                     }
                                 }
@@ -175,37 +194,56 @@ impl ProtocolService {
                     }
                 }
 
-                response_channel.send(UsersInGroupResponse {
-                    group_id,
-                    users,
-                }).expect("Sending should succeed");
+                response_channel
+                    .send(UsersInGroupResponse {
+                        group_id,
+                        users,
+                    })
+                    .expect("Sending should succeed");
             }
         }
 
         Ok(())
     }
 
-    fn handle_blockchain_event(&mut self , blockchain_event: BlockchainEvent) -> Result<()> {
+    fn handle_blockchain_event(
+        &mut self,
+        blockchain_event: BlockchainEvent,
+    ) -> Result<()> {
         match blockchain_event {
-            BlockchainEvent::NewPeersetCreated { peers, permission_graph_cid, peerset_address } => {
+            BlockchainEvent::NewPeersetCreated {
+                peers,
+                permission_graph_cid,
+                peerset_address,
+            } => {
                 let address = peerset_address;
                 let cid = permission_graph_cid;
 
-                self.peersets.insert(address.clone(), PeerSet {
-                    blockchain_address: address.clone(),
-                    peers,
-                    permission_graph_cid: cid.clone(),
-                    permission_graph: None,
-                    transaction_state: PeerSetTransactionState::None,
-                });
+                self.peersets.insert(
+                    address.clone(),
+                    PeerSet {
+                        blockchain_address: address.clone(),
+                        peers,
+                        permission_graph_cid: cid.clone(),
+                        permission_graph: None,
+                        transaction_state:
+                            PeerSetTransactionState::None,
+                    },
+                );
 
-                self.ipfs_facade.load_permission_graph(cid, address)
+                self.ipfs_facade
+                    .load_permission_graph(cid, address)
             }
 
             BlockchainEvent::NewChangeProposed {
-                peerset_blockchain_address, proposed_by, new_permission_graph_cid, change_id
+                peerset_blockchain_address,
+                proposed_by,
+                new_permission_graph_cid,
+                change_id,
             } => {
-                let peerset = self.peerset_by_address(peerset_blockchain_address.as_str())?;
+                let peerset = self.peerset_by_address(
+                    peerset_blockchain_address.as_str(),
+                )?;
 
                 match &peerset.transaction_state {
                     PeerSetTransactionState::None => {
@@ -224,7 +262,7 @@ impl ProtocolService {
                 // download permission graph
                 self.ipfs_facade.load_permission_graph(
                     new_permission_graph_cid,
-                    peerset_blockchain_address
+                    peerset_blockchain_address,
                 );
             }
         }
@@ -232,23 +270,30 @@ impl ProtocolService {
         Ok(())
     }
 
-    fn handle_ipfs_event(&mut self, ipfs_event: IPFSEvent) -> Result<()> {
+    fn handle_ipfs_event(
+        &mut self,
+        ipfs_event: IPFSEvent,
+    ) -> Result<()> {
         match ipfs_event {
             IPFSEvent::PermissionGraphLoaded {
-                cid: cid_loaded, permission_graph: loaded_permission_graph, peerset_address
+                cid: cid_loaded,
+                permission_graph: loaded_permission_graph,
+                peerset_address,
             } => {
-                let peerset = self.peerset_by_address(peerset_address.as_str())?;
+                let peerset = self.peerset_by_address(
+                    peerset_address.as_str(),
+                )?;
 
                 if cid_loaded == peerset.permission_graph_cid {
-                    peerset.permission_graph = Some(loaded_permission_graph);
+                    peerset.permission_graph =
+                        Some(loaded_permission_graph);
                     // todo: update index here
-                    return Ok(())
+                    return Ok(());
                 }
-
 
                 match &mut peerset.transaction_state {
                     PeerSetTransactionState::ChangeProposed {
-                        proposed_by, permission_graph, permission_graph_cid: new_permission_graph_cid, change_id
+                        proposed_by: _, permission_graph, permission_graph_cid: new_permission_graph_cid, change_id: _
                     } => {
                         if new_permission_graph_cid == &cid_loaded {
                             // todo: at this point we can do some processing and vote whether change should be accepted or rejected.
@@ -267,8 +312,12 @@ impl ProtocolService {
         Ok(())
     }
 
-    fn peerset_by_address(&mut self, address: &str) -> Result<&mut PeerSet> {
-        return self.peersets
+    fn peerset_by_address(
+        &mut self,
+        address: &str,
+    ) -> Result<&mut PeerSet> {
+        return self
+            .peersets
             .get_mut(address)
             .ok_or(eyre!("no peerset with given address"));
     }
@@ -277,12 +326,17 @@ impl ProtocolService {
 // todo test protocol struct!
 #[cfg(test)]
 mod tests {
+    use crate::core::ipfs::IPFSFacade;
+    use crate::core::protocol::{
+        BlockchainEvent, IPFSEvent, Peer, ProtocolFacade,
+        ProtocolService,
+    };
+    use crate::grpc::command::{
+        Edge, Edges, Node, NodeType, PermissionGraph,
+    };
     use std::collections::HashMap;
     use std::time::Duration;
-    use crate::core::ipfs::{IPFSFacade};
-    use crate::core::protocol::{BlockchainEvent, IPFSEvent, Peer, ProtocolFacade, ProtocolService};
-    use crate::grpc::command::{Edge, Edges, Node, NodeType, PermissionGraph};
-    use crate::grpc::command::NodeType::User;
+
     use crate::ipfs::ipfs_client::CID;
 
     static PEER_ONE_ADDR: &'static str =
@@ -295,36 +349,49 @@ mod tests {
     #[tokio::test]
     async fn blockchain_event_test() {
         // given
-        let (blockchain_sender, mut blockchain_receiver) =
+        let (blockchain_sender, blockchain_receiver) =
             tokio::sync::mpsc::channel(100);
 
-        let (ipfs_sender, mut ipfs_receiver) =
+        let (ipfs_sender, ipfs_receiver) =
             tokio::sync::mpsc::channel(100);
 
-        let (query_sender, mut query_receiver) = tokio::sync::mpsc::channel(100);
+        let (query_sender, query_receiver) =
+            tokio::sync::mpsc::channel(100);
 
-        let ipfs_facade = IPFSFacadeMock { sender: ipfs_sender };
+        let ipfs_facade = IPFSFacadeMock {
+            sender: ipfs_sender,
+        };
 
         let handle = ProtocolService::start_event_loop(
             blockchain_receiver,
             ipfs_receiver,
             query_receiver,
-            Box::new(ipfs_facade)
+            Box::new(ipfs_facade),
         );
 
         let protocol_facade = ProtocolFacade {
             protocol_sender: query_sender,
         };
 
-
         // when
-        blockchain_sender.send(BlockchainEvent::NewPeersetCreated {
-            peers: vec![Peer { blockchain_address: PEER_ONE_ADDR.to_string() } ,
-                        Peer { blockchain_address: PEER_TWO_ADDR.to_string() }
-            ],
-            permission_graph_cid: "ipfs://test-cid".to_string(),
-            peerset_address: PEERSET_ADDR.to_string(),
-        }).await.expect("should succeed");
+        blockchain_sender
+            .send(BlockchainEvent::NewPeersetCreated {
+                peers: vec![
+                    Peer {
+                        blockchain_address: PEER_ONE_ADDR
+                            .to_string(),
+                    },
+                    Peer {
+                        blockchain_address: PEER_TWO_ADDR
+                            .to_string(),
+                    },
+                ],
+                permission_graph_cid: "ipfs://test-cid"
+                    .to_string(),
+                peerset_address: PEERSET_ADDR.to_string(),
+            })
+            .await
+            .expect("should succeed");
 
         // wait for events to be processed
         // todo: figure out a smarter way to make sure that all events have been processed.
@@ -335,8 +402,6 @@ mod tests {
             .query_users_in_group("gr_1".to_string())
             .await
             .expect("response should be ready");
-
-
 
         assert_eq!(response.users.len(), 1);
         assert_eq!(response.users[0].id, "ur_1".to_string());
@@ -356,11 +421,15 @@ mod tests {
         ) {
             let sender = self.sender.clone();
             tokio::spawn(async move {
-                sender.send(IPFSEvent::PermissionGraphLoaded {
-                    cid,
-                    permission_graph: test_graph_with_user_and_group(),
-                    peerset_address,
-                }).await.expect("should succeed")
+                sender
+                    .send(IPFSEvent::PermissionGraphLoaded {
+                        cid,
+                        permission_graph:
+                            test_graph_with_user_and_group(),
+                        peerset_address,
+                    })
+                    .await
+                    .expect("should succeed")
             });
         }
     }
@@ -377,7 +446,8 @@ mod tests {
                             peerset_address: None,
                         }),
                         edges: vec![Edge {
-                            destination_node_id: "gr_1".to_string(),
+                            destination_node_id: "gr_1"
+                                .to_string(),
                             permission: "belongs".to_string(),
                         }],
                     },
@@ -397,7 +467,6 @@ mod tests {
         };
     }
 }
-
 
 // 1. create abstract blockchain events
 

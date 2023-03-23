@@ -23,10 +23,10 @@ use organisation::poc::shared::{
     demo_organisation_one, shared_init,
 };
 use std::sync::{Arc, Mutex};
-use color_eyre::eyre::eyre;
+
+use organisation::ipfs::ipfs_client::IPFSClientFacade;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
-use organisation::ipfs::ipfs_client::IPFSClientFacade;
 
 /// Rough Plan:
 /// Organisation should run in test-mode and listen for commands from the outside.
@@ -135,7 +135,7 @@ impl PeersetsLocalRegistry {
 impl OrganisationDevService {
     fn new(ethereum_client: EnrichedEthereumClient) -> Self {
         OrganisationDevService {
-            ipfs_client: IPFSClientFacade { },
+            ipfs_client: IPFSClientFacade {},
             ethereum_client,
             local_registry: PeersetsLocalRegistry::new(),
         }
@@ -200,16 +200,18 @@ impl OrganisationDevService {
         Ok(PeersetCreatedResponse {})
     }
 
-    async fn propose_change_impl(&self,
-                                 request: ProposeChangeRequest
-    ) -> Result<ProposeChangeResponse>{
-        let peerset_address = request.peerset_address;
+    async fn propose_change_impl(
+        &self,
+        request: ProposeChangeRequest,
+    ) -> Result<ProposeChangeResponse> {
+        let _peerset_address = request.peerset_address;
 
-        let new_cid = self.ipfs_client.upload_permission_graph(
-            request.new_permission_graph.unwrap()
-        ).await?;
-
-
+        let _new_cid = self
+            .ipfs_client
+            .upload_permission_graph(
+                request.new_permission_graph.unwrap(),
+            )
+            .await?;
 
         // now we need to propose a change through peerset smart contract.
         // let peerset_service = self.local_registry.find_by_address(peerset_address.into()?)
@@ -221,7 +223,6 @@ impl OrganisationDevService {
 
         // now we need to wait for the protocol to finish executing
         // and hopefully emit some event that we can listen to.
-
 
         panic!();
     }
@@ -276,8 +277,6 @@ impl OrganisationDev for OrganisationDevService {
         Status,
     > {
         info!("Proposing a change: {:?}", request);
-
-
 
         todo!()
     }
