@@ -29,6 +29,17 @@ pub struct EthereumFacadeImpl {
     pub ethereum_client: Arc<EthereumClient>,
 }
 
+impl EthereumFacadeImpl {
+    pub fn new(wallet: LocalWallet, sender: Sender<BlockchainEvent>) -> EthereumFacadeImpl {
+        let eth_client = crate_local_ethereum_client(wallet).expect("should succeed");
+
+        Self {
+            sender,
+            ethereum_client: Arc::new(eth_client),
+        }
+    }
+}
+
 impl EthereumFacade for EthereumFacadeImpl {
     fn async_create_peerset(
         &self,

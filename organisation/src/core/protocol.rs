@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use crate::core::ethereum::EthereumFacade;
-use crate::core::ipfs::IPFSFacade;
+use crate::core::ethereum::{EthereumFacade, EthereumFacadeImpl};
+use crate::core::ipfs::{IPFSFacade, NoOpIPFSFacade};
 use color_eyre::eyre::eyre;
+use ethers_signers::LocalWallet;
 use log::warn;
 use tokio::select;
 use tokio::sync::oneshot::error::RecvError;
@@ -13,13 +14,37 @@ use crate::grpc::command::{CreatePeersetRequest, CreatePeersetResponse, Node, Pe
 use crate::ipfs::ipfs_client::CID;
 
 /// todo: define interface for access queries.
-/// for now let's start with something minimalistic for tests
+/// todo: define interface for commands
 pub struct ProtocolFacade {
     query_sender: tokio::sync::mpsc::Sender<QueryEvent>,
     command_sender: tokio::sync::mpsc::Sender<CommandEvent>,
 }
 
 impl ProtocolFacade {
+    pub fn new(wallet: LocalWallet) -> Self {
+        let (blockchain_sender, blockchain_receiver) = tokio::sync::mpsc::channel(100);
+        let (_ipfs_sender, ipfs_receiver) = tokio::sync::mpsc::channel(100);
+        let (query_sender, query_receiver) = tokio::sync::mpsc::channel(100);
+        let (command_sender, command_receiver) = tokio::sync::mpsc::channel(100);
+
+        let ipfs_facade = NoOpIPFSFacade::new();
+        let ethereum_facade = EthereumFacadeImpl::new(wallet, blockchain_sender);
+
+        let _handle = ProtocolService::start_event_loop(
+            blockchain_receiver,
+            ipfs_receiver,
+            query_receiver,
+            command_receiver,
+            Box::new(ipfs_facade),
+            Box::new(ethereum_facade),
+        );
+
+        ProtocolFacade {
+            command_sender,
+            query_sender,
+        }
+    }
+
     pub async fn query_users_in_group(
         &self,
         group_id: String,

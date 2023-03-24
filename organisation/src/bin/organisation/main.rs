@@ -6,6 +6,7 @@ use organisation::data_model::peer_set::{Peer, PeerSet};
 use organisation::errors::Result;
 use organisation::grpc;
 
+use ethers_signers::{LocalWallet, Signer};
 use organisation::grpc::command::organisation_dev_server::OrganisationDevServer;
 use organisation::grpc::command::{
     CreatePeersetRequest, CreatePeersetResponse, PeersetCreatedRequest, PeersetCreatedResponse,
@@ -17,10 +18,12 @@ use organisation::on_chain::peer_set_sc::{
     PeerSetSmartContractService, PeerSetSmartContractServiceFromAddress,
 };
 use organisation::poc::shared::{
-    create_demo_client, demo_graph_ipfs_pointer, demo_organisation_one, shared_init,
+    create_demo_client, demo_graph_ipfs_pointer, demo_organisation_one, shared_init, CHAIN_ID,
 };
+use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 
+use organisation::core::protocol::ProtocolFacade;
 use organisation::ipfs::ipfs_client::IPFSClientFacade;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
@@ -47,11 +50,11 @@ async fn main() -> Result<()> {
     let addr = format!("[::1]:{}", port).parse()?;
     info!("Running on: {}", addr);
 
-    // todo create a factory that creates the correct client based on the environment.
-    let executing_organisation = demo_organisation_one()?;
-    let ethereum_client = create_demo_client(executing_organisation)?;
+    let wallet_address = "2834824554106f1a77dd199dfc5456cb40091f560b3b3d2d3417bb04d04bd969";
+    let wallet = local_wallet(wallet_address);
+    let protocol_facade = ProtocolFacade::new(wallet);
 
-    let organisation_service = OrganisationDevService::new(ethereum_client);
+    let organisation_service = OrganisationDevService::new(protocol_facade);
 
     Server::builder()
         .add_service(OrganisationDevServer::new(organisation_service))
@@ -61,69 +64,20 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+fn local_wallet(wallet_address: &str) -> LocalWallet {
+    wallet_address
+        .parse::<LocalWallet>()
+        .expect("should be valid wallet")
+        .with_chain_id(CHAIN_ID)
+}
+
 pub struct OrganisationDevService {
-    // for communicating with the ethereum blockchain.
-    ethereum_client: EnrichedEthereumClient,
-
-    // all peersets that this organisation is part of.
-    local_registry: PeersetsLocalRegistry,
-
-    ipfs_client: IPFSClientFacade,
+    protocol_facade: ProtocolFacade,
 }
 
-/// This struct will be used to record the state of the organisation.
-/// mutex should probably be moved to the service?.
-/// Maybe we could instead use some sort of actor model?
-struct PeersetsLocalRegistry {
-    peersets: Arc<Mutex<Vec<Arc<Mutex<PeerSetSmartContractService>>>>>,
-}
-
-impl PeersetsLocalRegistry {
-    fn new() -> Self {
-        PeersetsLocalRegistry {
-            peersets: Arc::new(Mutex::new(vec![])),
-        }
-    }
-
-    // todo: deadcode!!
-    #[allow(dead_code)]
-    fn find_by_address(
-        &self,
-        peerset_address: Address,
-    ) -> Option<Arc<Mutex<PeerSetSmartContractService>>> {
-        self.peersets
-            .lock()
-            .unwrap()
-            .iter()
-            .find(|x| x.lock().unwrap().address() == peerset_address)
-            .map(|x| Arc::clone(x))
-    }
-
-    fn add(&self, peerset_service: PeerSetSmartContractService) {
-        let address = peerset_service.address();
-        let mut guard = self.peersets.lock().unwrap();
-
-        if guard.iter().any(|x| x.lock().unwrap().address() == address) {
-            warn!(
-                "Peerset already exists in local registry, duplicate detected: {}",
-                address
-            );
-            return;
-        }
-
-        guard.push(Arc::new(Mutex::new(peerset_service)));
-    }
-}
-
-// todo: refactor to use dependency injection/traits so that we can unit test this!
-// todo: this should instead emit events to ProtocolFacade!
 impl OrganisationDevService {
-    fn new(ethereum_client: EnrichedEthereumClient) -> Self {
-        OrganisationDevService {
-            ipfs_client: IPFSClientFacade {},
-            ethereum_client,
-            local_registry: PeersetsLocalRegistry::new(),
-        }
+    fn new(protocol_facade: ProtocolFacade) -> Self {
+        OrganisationDevService { protocol_facade }
     }
 
     async fn create_peerset_impl(
@@ -143,35 +97,14 @@ impl OrganisationDevService {
             Ok(PeerSet { peers })
         }
 
-        // todo: upload graph to ipfs.
-        // and register peerset with bootstrapped graph.
-
-        let peer_set = sanitize_peerset_request(&request)?;
-        let smart_contract = self
-            .ethereum_client
-            .register_peerset(&peer_set, demo_graph_ipfs_pointer())
-            .await?;
-
-        let address = smart_contract.address().to_string();
-        let peerset_service = PeerSetSmartContractService { smart_contract };
-
-        self.local_registry.add(peerset_service);
-
-        Ok(CreatePeersetResponse {
-            deployed_peerset_smart_contract_address: address,
-        })
+        todo!();
     }
 
     fn peerset_created_impl(
         &self,
         request: PeersetCreatedRequest,
     ) -> Result<PeersetCreatedResponse> {
-        let address = &request.deployed_peerset_smart_contract_address;
-
-        let smart_contract = self.ethereum_client.connect_to_peer_set_sc(address)?;
-
-        self.local_registry.add(smart_contract);
-        // todo: should also subscribe to peerset smart contract events.
+        todo!();
 
         Ok(PeersetCreatedResponse {})
     }
@@ -180,25 +113,7 @@ impl OrganisationDevService {
         &self,
         request: ProposeChangeRequest,
     ) -> Result<ProposeChangeResponse> {
-        let _peerset_address = request.peerset_address;
-
-        let _new_cid = self
-            .ipfs_client
-            .upload_permission_graph(request.new_permission_graph.unwrap())
-            .await?;
-
-        // now we need to propose a change through peerset smart contract.
-        // let peerset_service = self.local_registry.find_by_address(peerset_address.into()?)
-        //     .ok_or_else(|| eyre!("Peerset not found in local registry: {}", peerset_address))?;
-        //
-        // // todo: locking should be moved to the service!
-        // let _lock = peerset_service.lock()?;
-        // _lock.propose_change(new_cid).await?;
-
-        // now we need to wait for the protocol to finish executing
-        // and hopefully emit some event that we can listen to.
-
-        panic!();
+        todo!();
     }
 }
 
@@ -225,6 +140,7 @@ impl OrganisationDev for OrganisationDevService {
         &self,
         request: Request<PeersetCreatedRequest>,
     ) -> std::result::Result<Response<PeersetCreatedResponse>, Status> {
+        todo!();
         info!("Peerset created: {:?}", request);
 
         let result = self.peerset_created_impl(request.into_inner());

@@ -1,5 +1,5 @@
 pub mod bindings;
-mod core;
+pub mod core;
 pub mod data_model;
 pub mod errors;
 pub mod grpc;
