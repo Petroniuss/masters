@@ -1,30 +1,17 @@
-
+use ethers_signers::{LocalWallet, Signer};
 use grpc::command::organisation_dev_server::OrganisationDev;
-use std::fmt::Display;
-
-use log::{info};
-
+use log::info;
+use organisation::core::protocol::ProtocolFacade;
 use organisation::errors::Result;
 use organisation::grpc;
-
-use ethers_signers::{LocalWallet, Signer};
 use organisation::grpc::command::organisation_dev_server::OrganisationDevServer;
 use organisation::grpc::command::{
     CreatePeersetRequest, CreatePeersetResponse, PeersetCreatedRequest, PeersetCreatedResponse,
     ProposeChangeRequest, ProposeChangeResponse, QueryPeersetsCiDsRequest,
     QueryPeersetsCiDsResponse,
 };
-
-
-
-use organisation::poc::shared::{
-    shared_init, CHAIN_ID,
-};
-
-
-
-use organisation::core::protocol::ProtocolFacade;
-
+use organisation::poc::shared::{shared_init, CHAIN_ID};
+use std::fmt::Display;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
 

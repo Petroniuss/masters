@@ -6,7 +6,7 @@ use crate::core::protocol::BlockchainEvent::NewPeersetCreated;
 use color_eyre::eyre::eyre;
 use ethers_signers::LocalWallet;
 use itertools::Itertools;
-use log::{info};
+use log::info;
 use tokio::select;
 use tokio::sync::oneshot::error::RecvError;
 use tokio::task::JoinHandle;
@@ -14,7 +14,8 @@ use tokio::task::JoinHandle;
 use crate::errors::Result;
 use crate::grpc::command::{
     CreatePeersetRequest, CreatePeersetResponse, Node, PeersetCreatedRequest, PeersetGraph,
-    PermissionGraph, QueryPeersetsCiDsRequest, QueryPeersetsCiDsResponse,
+    PermissionGraph, ProposeChangeRequest, ProposeChangeResponse, QueryPeersetsCiDsRequest,
+    QueryPeersetsCiDsResponse,
 };
 use crate::ipfs::ipfs_client::CID;
 
@@ -101,6 +102,19 @@ impl ProtocolFacade {
             .expect("should succeed");
     }
 
+    pub async fn propose_change(&self, request: ProposeChangeRequest) -> ProposeChangeResponse {
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        self.command_sender
+            .send(CommandEvent::ProposeChange {
+                request,
+                response_channel: sender,
+            })
+            .await
+            .unwrap();
+
+        receiver.await.unwrap()
+    }
+
     pub async fn query_peersets(
         &self,
         query_peersets: QueryPeersetsCiDsRequest,
@@ -175,6 +189,10 @@ pub enum CommandEvent {
         request: CreatePeersetRequest,
         response_channel: tokio::sync::oneshot::Sender<CreatePeersetResponse>,
     },
+    ProposeChange {
+        request: ProposeChangeRequest,
+        response_channel: tokio::sync::oneshot::Sender<ProposeChangeResponse>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -186,10 +204,12 @@ pub struct Peer {
 enum PeerSetTransactionState {
     None,
     ChangeProposed {
+        votes: i32,
         proposed_by: Peer,
         permission_graph: Option<PermissionGraph>,
         permission_graph_cid: CID,
         change_id: String,
+        response_channel: Option<tokio::sync::oneshot::Sender<ProposeChangeResponse>>,
     },
 }
 
@@ -202,6 +222,7 @@ struct PeerSet {
     permission_graph: Option<PermissionGraph>, // todo: we probably shouldn't use type that's used in transport protocol here!
 
     transaction_state: PeerSetTransactionState,
+    // todo: here we also need to store local state (for example command: propose change)
 }
 
 /// A single thread that loops through possible events and processes them as they come in.
@@ -273,6 +294,14 @@ impl ProtocolService {
                     initial_permission_graph.clone().unwrap(),
                     command_event,
                 );
+            }
+            CommandEvent::ProposeChange {
+                request,
+                response_channel,
+            } => {
+                // need to save this guy to ipfs first, ehh and only then propose a change.
+                // todo: refactor to save context in the event loop
+                todo!();
             }
         }
 
@@ -367,6 +396,9 @@ impl ProtocolService {
                                 })
                                 .expect("sending should succeed");
                         }
+                        CommandEvent::ProposeChange { .. } => {
+                            todo!()
+                        }
                     }
                 }
             }
@@ -382,10 +414,12 @@ impl ProtocolService {
                 match &peerset.transaction_state {
                     PeerSetTransactionState::None => {
                         peerset.transaction_state = PeerSetTransactionState::ChangeProposed {
+                            votes: 0,
                             proposed_by,
                             permission_graph: None,
                             permission_graph_cid: new_permission_graph_cid.clone(),
                             change_id,
+                            response_channel: None,
                         }
                     }
                     _ => {
@@ -423,7 +457,7 @@ impl ProtocolService {
 
                 match &mut peerset.transaction_state {
                     PeerSetTransactionState::ChangeProposed {
-                        proposed_by: _, permission_graph, permission_graph_cid: new_permission_graph_cid, change_id: _
+                        votes, proposed_by: _, permission_graph, permission_graph_cid: new_permission_graph_cid, change_id: _, response_channel
                     } => {
                         if new_permission_graph_cid == &cid_loaded {
                             // todo: at this point we can do some processing and vote whether change should be accepted or rejected.
@@ -455,6 +489,9 @@ impl ProtocolService {
                     self.ethereum_facade
                         .async_create_peerset(peers, cid, context)
                 }
+                _ => {
+                    todo!()
+                }
             },
         }
 
@@ -477,14 +514,10 @@ mod tests {
     use crate::core::protocol::{
         BlockchainEvent, CommandEvent, IPFSEvent, Peer, ProtocolFacade, ProtocolService,
     };
-    use crate::grpc::command::{
-        CreatePeersetRequest, PermissionGraph,
-    };
-    
+    use crate::grpc::command::{CreatePeersetRequest, PermissionGraph};
 
     use crate::ipfs::ipfs_client::CID;
     use crate::poc::shared;
-    
 
     static PEER_ONE_ADDR: &'static str = "0xd13c4379bfc9a0ea5e147b2d37f65eb2400dfd7b";
     static PEER_TWO_ADDR: &'static str = "0xd248e4a8407ed7ff9bdbc396ba46723b8101c86e";
@@ -573,6 +606,10 @@ mod tests {
                     context: Some(context),
                 })
                 .expect("should succeed");
+        }
+
+        fn async_propose_change(&self, peerset_address: String, permission_graph_cid: CID) {
+            todo!()
         }
     }
 

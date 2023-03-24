@@ -16,12 +16,15 @@ use tokio::sync::mpsc::Sender;
 /// It notifies about Protocol about events from blockchain.
 pub trait EthereumFacade: Send {
     /// todo: not sure about this context thing.
+    /// it should rather be part of protocol.rs, simply store it in PeerSet struct.
     fn async_create_peerset(
         &self,
         peers: Vec<Peer>,
         permission_graph_cid: CID,
         context: CommandEvent,
     );
+
+    fn async_propose_change(&self, peerset_address: String, permission_graph_cid: CID);
 }
 
 pub struct EthereumFacadeImpl {
@@ -65,6 +68,10 @@ impl EthereumFacade for EthereumFacadeImpl {
                 .await
                 .expect("should succeed");
         });
+    }
+
+    fn async_propose_change(&self, peerset_address: String, permission_graph_cid: CID) {
+        todo!()
     }
 }
 

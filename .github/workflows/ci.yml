@@ -31,6 +31,15 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Test rust image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./organisation
+          cache-from: type=registry,ref=petroniuss/masters-organisation:buildcache
+          cache-to: type=registry,ref=petroniuss/masters-organisation:buildcache,mode=max
+          target: test
+          push: false
+
       - name: Build rust image
         uses: docker/build-push-action@v3
         with:
@@ -46,7 +55,6 @@ jobs:
           context: ./blockchain
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: petroniuss/masters-blockchain:latest
           push: false
 
       - name: Build anvil image

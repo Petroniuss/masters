@@ -4,13 +4,11 @@ use grpc::command;
 use grpc::command::organisation_dev_client::OrganisationDevClient;
 use log::info;
 
-
-
 use tonic::transport::{Channel, Endpoint};
 
 use organisation::grpc;
 use organisation::grpc::command::{
-    PeersetGraph, QueryPeersetsCiDsRequest,
+    Edge, Edges, Node, NodeType, PeersetGraph, QueryPeersetsCiDsRequest,
 };
 use organisation::poc::shared;
 use organisation::poc::shared::shared_init;
@@ -56,17 +54,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .into_inner();
     info!("Peerset Created {:?}", peerset_response);
 
-    info!("Notifying peer1 that peerset PS-1 has been created..");
-    let _response = client_1
-        .peerset_created(tonic::Request::new(command::PeersetCreatedRequest {
-            deployed_peerset_smart_contract_address: peerset_response
-                .deployed_peerset_smart_contract_address
-                .clone(),
-            permission_graph_cid: peerset_response.cid.clone(),
-            peers: peers.clone(),
-        }))
-        .await?;
-
     info!("Notifying peer2 that peerset PS-1 has been created..");
     let _response = client_2
         .peerset_created(tonic::Request::new(command::PeersetCreatedRequest {
@@ -96,7 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     info!("Querying peer2 to get their perceived version of the graph..");
-    let response = client_1
+    let response = client_2
         .query_peersets_cid(QueryPeersetsCiDsRequest {})
         .await?
         .into_inner();
@@ -116,39 +103,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ask them for current graph version.
 
     // adds a new user that also belongs to the gr_1
-    // let permission_graph_p1_v2 = {
-    //     let mut tmp = permission_graph_p1_v1.clone();
-    //
-    //     tmp.edges.insert(
-    //         "ur_2".to_string(),
-    //         Edges {
-    //             source: Some(Node {
-    //                 id: "ur_2".to_string(),
-    //                 r#type: NodeType::User as i32,
-    //                 peerset_address: None,
-    //             }),
-    //             edges: vec![Edge {
-    //                 destination_node_id: "gr_1".to_string(),
-    //                 permission: "belongs".to_string(),
-    //             }],
-    //         },
-    //     );
-    //
-    //     tmp
-    // };
+    let permission_graph_p1_v2 = {
+        let mut tmp = permission_graph_p1_v1.clone();
 
-    // Now propose a change, sync request waits for change to be either accepted or rejected.
-    // info!("Peer 2 proposes a change to peerset (p1)");
-    // let response = client_2
-    //     .propose_change(tonic::Request::new(command::ProposeChangeRequest {
-    //         peerset_address,
-    //         new_permission_graph: Some(permission_graph_p1_v2),
-    //     }))
-    //     .await?;
-    // info!(
-    //     "Reached consensus on proposed change = response{:?}",
-    //     response
-    // );
+        tmp.edges.insert(
+            "ur_2".to_string(),
+            Edges {
+                source: Some(Node {
+                    id: "ur_2".to_string(),
+                    r#type: NodeType::User as i32,
+                    peerset_address: None,
+                }),
+                edges: vec![Edge {
+                    destination_node_id: "gr_1".to_string(),
+                    permission: "belongs".to_string(),
+                }],
+            },
+        );
+
+        tmp
+    };
+
+    info!("Proposing a change by peer 2..");
+    let response = client_2
+        .propose_change(tonic::Request::new(command::ProposeChangeRequest {
+            peerset_address: peerset_response
+                .deployed_peerset_smart_contract_address
+                .clone(),
+            new_permission_graph: Some(permission_graph_p1_v2),
+        }))
+        .await?;
+    info!(
+        "Reached consensus on proposed change = response{:?}",
+        response
+    );
 
     Ok(())
 }
