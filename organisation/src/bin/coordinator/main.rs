@@ -3,13 +3,15 @@ use backoff::ExponentialBackoff;
 use grpc::command;
 use grpc::command::organisation_dev_client::OrganisationDevClient;
 use log::info;
-use std::collections::HashMap;
-use std::thread::sleep;
-use std::time::Duration;
+
+
+
 use tonic::transport::{Channel, Endpoint};
 
 use organisation::grpc;
-use organisation::grpc::command::{Edge, Edges, Node, NodeType, PermissionGraph};
+use organisation::grpc::command::{
+    PeersetGraph, QueryPeersetsCiDsRequest,
+};
 use organisation::poc::shared;
 use organisation::poc::shared::shared_init;
 
@@ -43,6 +45,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         shared::ORGANISATION_TWO_ADDR.to_string(),
     ];
 
+    info!("Creating peerset..");
     let peerset_response = client_1
         .create_peerset(tonic::Request::new(command::CreatePeersetRequest {
             name: "p1".to_string(),
@@ -51,11 +54,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }))
         .await?
         .into_inner();
-    info!("Create peerset response={:?}", peerset_response);
+    info!("Peerset Created {:?}", peerset_response);
 
-    // todo: this should be handled by blockchain automagically if peerset is registered somewhere.
-    // notify peer 1
-    let response = client_1
+    info!("Notifying peer1 that peerset PS-1 has been created..");
+    let _response = client_1
         .peerset_created(tonic::Request::new(command::PeersetCreatedRequest {
             deployed_peerset_smart_contract_address: peerset_response
                 .deployed_peerset_smart_contract_address
@@ -64,24 +66,51 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             peers: peers.clone(),
         }))
         .await?;
-    info!(
-        "Notify peer1 that peerset PS-1 has been created = response{:?}",
-        response
-    );
 
-    // notify peer 2
-    let response = client_2
+    info!("Notifying peer2 that peerset PS-1 has been created..");
+    let _response = client_2
         .peerset_created(tonic::Request::new(command::PeersetCreatedRequest {
             deployed_peerset_smart_contract_address: peerset_response
                 .deployed_peerset_smart_contract_address
                 .clone(),
-            permission_graph_cid: peerset_response.cid,
+            permission_graph_cid: peerset_response.cid.clone(),
             peers: peers.clone(),
         }))
         .await?;
-    info!(
-        "Notify peer2 that peerset PS-1 has been created = response{:?}",
-        response
+
+    info!("Querying peer1 to get their perceived version of the graph..");
+    let response = client_1
+        .query_peersets_cid(QueryPeersetsCiDsRequest {})
+        .await?
+        .into_inner();
+    info!("Peer1 response: {:?}", response);
+    assert_eq!(response.peerset_graphs.len(), 1);
+    assert_eq!(
+        response.peerset_graphs[0],
+        PeersetGraph {
+            peerset_address: peerset_response
+                .deployed_peerset_smart_contract_address
+                .clone(),
+            permission_graph_cid: peerset_response.cid.clone(),
+        }
+    );
+
+    info!("Querying peer2 to get their perceived version of the graph..");
+    let response = client_1
+        .query_peersets_cid(QueryPeersetsCiDsRequest {})
+        .await?
+        .into_inner();
+    info!("Peer2 response: {:?}", response);
+
+    assert_eq!(response.peerset_graphs.len(), 1);
+    assert_eq!(
+        response.peerset_graphs[0],
+        PeersetGraph {
+            peerset_address: peerset_response
+                .deployed_peerset_smart_contract_address
+                .clone(),
+            permission_graph_cid: peerset_response.cid.clone(),
+        }
     );
 
     // ask them for current graph version.

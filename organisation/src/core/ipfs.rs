@@ -2,7 +2,7 @@ use crate::core::protocol::{CommandEvent, IPFSEvent};
 use crate::grpc::command::PermissionGraph;
 use crate::ipfs::ipfs_client::CID;
 use crate::poc::shared;
-use tokio::spawn;
+
 use tokio::sync::mpsc::Sender;
 
 /// Actual implementation will schedule IPFS RPC call and emit an event back to the protocol thread.

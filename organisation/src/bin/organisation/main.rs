@@ -1,9 +1,9 @@
-use ethers::types::Address;
+
 use grpc::command::organisation_dev_server::OrganisationDev;
 use std::fmt::Display;
 
-use log::{info, warn};
-use organisation::data_model::peer_set::{Peer, PeerSet};
+use log::{info};
+
 use organisation::errors::Result;
 use organisation::grpc;
 
@@ -14,19 +14,17 @@ use organisation::grpc::command::{
     ProposeChangeRequest, ProposeChangeResponse, QueryPeersetsCiDsRequest,
     QueryPeersetsCiDsResponse,
 };
-use organisation::on_chain::ethereum_client::EnrichedEthereumClient;
-use organisation::on_chain::peer_broadcast_sc::PeerBroadcastService;
-use organisation::on_chain::peer_set_sc::{
-    PeerSetSmartContractService, PeerSetSmartContractServiceFromAddress,
-};
+
+
+
 use organisation::poc::shared::{
-    create_demo_client, demo_graph_ipfs_pointer, demo_organisation_one, shared_init, CHAIN_ID,
+    shared_init, CHAIN_ID,
 };
-use std::sync::mpsc::Sender;
-use std::sync::{Arc, Mutex};
+
+
 
 use organisation::core::protocol::ProtocolFacade;
-use organisation::ipfs::ipfs_client::IPFSClientFacade;
+
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
 
@@ -41,7 +39,6 @@ use tonic::{Request, Response, Status};
 /// Plan for now:
 /// - create a test coordinator that can send commands to the organisation.
 /// - create test-mode for organisation that listens for commands.
-/// - create a docker-compose that starts the organisation and the coordinator.
 /// - run test using the coordinator.
 ///
 #[tokio::main]
@@ -67,6 +64,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+/// grpc generated stubs
 pub struct OrganisationDevService {
     protocol_facade: ProtocolFacade,
 }
@@ -77,7 +75,6 @@ impl OrganisationDevService {
     }
 }
 
-// grpc generated stubs
 #[tonic::async_trait]
 impl OrganisationDev for OrganisationDevService {
     async fn create_peerset(
@@ -122,12 +119,15 @@ impl OrganisationDev for OrganisationDevService {
         &self,
         request: Request<QueryPeersetsCiDsRequest>,
     ) -> std::result::Result<Response<QueryPeersetsCiDsResponse>, Status> {
-        todo!()
+        let result = self
+            .protocol_facade
+            .query_peersets(request.into_inner())
+            .await;
+        handle_err(Ok(result))
     }
 }
 
-// error handling
-
+/// error handling
 fn handle_err<T>(result: Result<T>) -> std::result::Result<Response<T>, Status> {
     result
         .map(|x| Response::new(x))
@@ -143,7 +143,6 @@ fn handle_err_std<T, E: Display>(
 }
 
 /// configuration
-
 struct Configuration {
     port: String,
     wallet_pk: String,

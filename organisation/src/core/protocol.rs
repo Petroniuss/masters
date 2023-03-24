@@ -6,7 +6,7 @@ use crate::core::protocol::BlockchainEvent::NewPeersetCreated;
 use color_eyre::eyre::eyre;
 use ethers_signers::LocalWallet;
 use itertools::Itertools;
-use log::{info, warn};
+use log::{info};
 use tokio::select;
 use tokio::sync::oneshot::error::RecvError;
 use tokio::task::JoinHandle;
@@ -478,13 +478,13 @@ mod tests {
         BlockchainEvent, CommandEvent, IPFSEvent, Peer, ProtocolFacade, ProtocolService,
     };
     use crate::grpc::command::{
-        CreatePeersetRequest, Edge, Edges, Node, NodeType, PermissionGraph,
+        CreatePeersetRequest, PermissionGraph,
     };
-    use std::collections::HashMap;
+    
 
     use crate::ipfs::ipfs_client::CID;
     use crate::poc::shared;
-    use crate::poc::shared::demo_graph;
+    
 
     static PEER_ONE_ADDR: &'static str = "0xd13c4379bfc9a0ea5e147b2d37f65eb2400dfd7b";
     static PEER_TWO_ADDR: &'static str = "0xd248e4a8407ed7ff9bdbc396ba46723b8101c86e";
