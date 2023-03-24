@@ -36,58 +36,47 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let channel = connect("http://[::1]:50052").await;
     let mut client_2 = OrganisationDevClient::new(channel);
 
-    info!("Coordinator says hi");
-    sleep(Duration::from_secs(20));
+    let permission_graph_p1_v1 = shared::demo_graph();
 
-    let permission_graph_p1_v1 = PermissionGraph {
-        edges: HashMap::from([
-            (
-                "ur_1".to_string(),
-                Edges {
-                    source: Some(Node {
-                        id: "ur_1".to_string(),
-                        r#type: NodeType::User as i32,
-                        peerset_address: None,
-                    }),
-                    edges: vec![Edge {
-                        destination_node_id: "gr_1".to_string(),
-                        permission: "belongs".to_string(),
-                    }],
-                },
-            ),
-            (
-                "gr_1".to_string(),
-                Edges {
-                    source: Some(Node {
-                        id: "gr_1".to_string(),
-                        r#type: NodeType::User as i32,
-                        peerset_address: None,
-                    }),
-                    edges: vec![],
-                },
-            ),
-        ]),
-    };
+    let peers = vec![
+        shared::ORGANISATION_ONE_ADDR.to_string(),
+        shared::ORGANISATION_TWO_ADDR.to_string(),
+    ];
 
-    let response = client_1
+    let peerset_response = client_1
         .create_peerset(tonic::Request::new(command::CreatePeersetRequest {
             name: "p1".to_string(),
-            peers: vec![
-                shared::ORGANISATION_ONE_ADDR.to_string(),
-                shared::ORGANISATION_TWO_ADDR.to_string(),
-            ],
+            peers: peers.clone(),
             initial_permission_graph: Some(permission_graph_p1_v1.clone()),
         }))
-        .await?;
-    info!("Create peerset response={:?}", response);
-    let peerset_address = response
-        .into_inner()
-        .deployed_peerset_smart_contract_address;
+        .await?
+        .into_inner();
+    info!("Create peerset response={:?}", peerset_response);
 
-    // instead we could have a separate smart contract where all peersets are registered.
+    // todo: this should be handled by blockchain automagically if peerset is registered somewhere.
+    // notify peer 1
+    let response = client_1
+        .peerset_created(tonic::Request::new(command::PeersetCreatedRequest {
+            deployed_peerset_smart_contract_address: peerset_response
+                .deployed_peerset_smart_contract_address
+                .clone(),
+            permission_graph_cid: peerset_response.cid.clone(),
+            peers: peers.clone(),
+        }))
+        .await?;
+    info!(
+        "Notify peer1 that peerset PS-1 has been created = response{:?}",
+        response
+    );
+
+    // notify peer 2
     let response = client_2
         .peerset_created(tonic::Request::new(command::PeersetCreatedRequest {
-            deployed_peerset_smart_contract_address: peerset_address.clone(),
+            deployed_peerset_smart_contract_address: peerset_response
+                .deployed_peerset_smart_contract_address
+                .clone(),
+            permission_graph_cid: peerset_response.cid,
+            peers: peers.clone(),
         }))
         .await?;
     info!(
@@ -95,40 +84,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         response
     );
 
+    // ask them for current graph version.
+
     // adds a new user that also belongs to the gr_1
-    let permission_graph_p1_v2 = {
-        let mut tmp = permission_graph_p1_v1.clone();
-
-        tmp.edges.insert(
-            "ur_2".to_string(),
-            Edges {
-                source: Some(Node {
-                    id: "ur_2".to_string(),
-                    r#type: NodeType::User as i32,
-                    peerset_address: None,
-                }),
-                edges: vec![Edge {
-                    destination_node_id: "gr_1".to_string(),
-                    permission: "belongs".to_string(),
-                }],
-            },
-        );
-
-        tmp
-    };
+    // let permission_graph_p1_v2 = {
+    //     let mut tmp = permission_graph_p1_v1.clone();
+    //
+    //     tmp.edges.insert(
+    //         "ur_2".to_string(),
+    //         Edges {
+    //             source: Some(Node {
+    //                 id: "ur_2".to_string(),
+    //                 r#type: NodeType::User as i32,
+    //                 peerset_address: None,
+    //             }),
+    //             edges: vec![Edge {
+    //                 destination_node_id: "gr_1".to_string(),
+    //                 permission: "belongs".to_string(),
+    //             }],
+    //         },
+    //     );
+    //
+    //     tmp
+    // };
 
     // Now propose a change, sync request waits for change to be either accepted or rejected.
-    info!("Peer 2 proposes a change to peerset (p1)");
-    let response = client_2
-        .propose_change(tonic::Request::new(command::ProposeChangeRequest {
-            peerset_address,
-            new_permission_graph: Some(permission_graph_p1_v2),
-        }))
-        .await?;
-    info!(
-        "Reached consensus on proposed change = response{:?}",
-        response
-    );
+    // info!("Peer 2 proposes a change to peerset (p1)");
+    // let response = client_2
+    //     .propose_change(tonic::Request::new(command::ProposeChangeRequest {
+    //         peerset_address,
+    //         new_permission_graph: Some(permission_graph_p1_v2),
+    //     }))
+    //     .await?;
+    // info!(
+    //     "Reached consensus on proposed change = response{:?}",
+    //     response
+    // );
 
     Ok(())
 }

@@ -1,5 +1,6 @@
 use ethers::types::Address;
 use grpc::command::organisation_dev_server::OrganisationDev;
+use std::fmt::Display;
 
 use log::{info, warn};
 use organisation::data_model::peer_set::{Peer, PeerSet};
@@ -10,7 +11,8 @@ use ethers_signers::{LocalWallet, Signer};
 use organisation::grpc::command::organisation_dev_server::OrganisationDevServer;
 use organisation::grpc::command::{
     CreatePeersetRequest, CreatePeersetResponse, PeersetCreatedRequest, PeersetCreatedResponse,
-    ProposeChangeRequest, ProposeChangeResponse,
+    ProposeChangeRequest, ProposeChangeResponse, QueryPeersetsCiDsRequest,
+    QueryPeersetsCiDsResponse,
 };
 use organisation::on_chain::ethereum_client::EnrichedEthereumClient;
 use organisation::on_chain::peer_broadcast_sc::PeerBroadcastService;
@@ -27,31 +29,6 @@ use organisation::core::protocol::ProtocolFacade;
 use organisation::ipfs::ipfs_client::IPFSClientFacade;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
-
-struct Configuration {
-    port: String,
-    wallet_pk: String,
-}
-
-fn load_configuration() -> Configuration {
-    let profile = std::env::var("ORG_PROFILE").expect("ORG_PROFILE should be set");
-
-    match profile.as_str() {
-        "peer_1" => Configuration {
-            port: "50051".to_string(),
-            wallet_pk: "2834824554106f1a77dd199dfc5456cb40091f560b3b3d2d3417bb04d04bd969"
-                .to_string(),
-        },
-        "peer_2" => Configuration {
-            port: "50052".to_string(),
-            wallet_pk: "d2ef8f291387de16e7ae1875f80d3d31a4b7e6687294862ff9793d584f933a5e"
-                .to_string(),
-        },
-        _ => {
-            panic!("Unknown profile {}", profile);
-        }
-    }
-}
 
 /// Rough Plan:
 /// Organisation should run in test-mode and listen for commands from the outside.
@@ -80,19 +57,14 @@ async fn main() -> Result<()> {
     let protocol_facade = ProtocolFacade::new(wallet);
     let organisation_service = OrganisationDevService::new(protocol_facade);
 
+    let organisation_server = OrganisationDevServer::new(organisation_service);
+
     Server::builder()
-        .add_service(OrganisationDevServer::new(organisation_service))
+        .add_service(organisation_server)
         .serve(addr)
         .await?;
 
     Ok(())
-}
-
-fn local_wallet(wallet_address: &str) -> LocalWallet {
-    wallet_address
-        .parse::<LocalWallet>()
-        .expect("should be valid wallet")
-        .with_chain_id(CHAIN_ID)
 }
 
 pub struct OrganisationDevService {
@@ -103,50 +75,9 @@ impl OrganisationDevService {
     fn new(protocol_facade: ProtocolFacade) -> Self {
         OrganisationDevService { protocol_facade }
     }
-
-    async fn create_peerset_impl(
-        &self,
-        request: CreatePeersetRequest,
-    ) -> Result<CreatePeersetResponse> {
-        fn sanitize_peerset_request(request: &CreatePeersetRequest) -> Result<PeerSet> {
-            let peers = request
-                .peers
-                .iter()
-                .map(|x| {
-                    Ok(Peer {
-                        ethereum_address: x.parse()?,
-                    })
-                })
-                .collect::<Result<Vec<_>>>()?;
-            Ok(PeerSet { peers })
-        }
-
-        todo!();
-    }
-
-    fn peerset_created_impl(
-        &self,
-        request: PeersetCreatedRequest,
-    ) -> Result<PeersetCreatedResponse> {
-        todo!();
-
-        Ok(PeersetCreatedResponse {})
-    }
-
-    async fn propose_change_impl(
-        &self,
-        request: ProposeChangeRequest,
-    ) -> Result<ProposeChangeResponse> {
-        todo!();
-    }
 }
 
-fn handle_err<T>(result: Result<T>) -> std::result::Result<Response<T>, Status> {
-    result
-        .map(|x| Response::new(x))
-        .map_err(|e| Status::internal(e.to_string()))
-}
-
+// grpc generated stubs
 #[tonic::async_trait]
 impl OrganisationDev for OrganisationDevService {
     async fn create_peerset(
@@ -155,19 +86,25 @@ impl OrganisationDev for OrganisationDevService {
     ) -> std::result::Result<Response<CreatePeersetResponse>, Status> {
         info!("Creating a peerset: {:?}", request);
 
-        let result = self.create_peerset_impl(request.into_inner()).await;
+        let result = self
+            .protocol_facade
+            .create_peerset(request.into_inner())
+            .await;
 
-        handle_err(result)
+        handle_err_std(result)
     }
 
+    // ideally this shouldn't exist.
     async fn peerset_created(
         &self,
         request: Request<PeersetCreatedRequest>,
     ) -> std::result::Result<Response<PeersetCreatedResponse>, Status> {
-        todo!();
         info!("Peerset created: {:?}", request);
 
-        let result = self.peerset_created_impl(request.into_inner());
+        self.protocol_facade
+            .peerset_created(request.into_inner())
+            .await;
+        let result = Ok(PeersetCreatedResponse {});
 
         handle_err(result)
     }
@@ -180,4 +117,61 @@ impl OrganisationDev for OrganisationDevService {
 
         todo!()
     }
+
+    async fn query_peersets_cid(
+        &self,
+        request: Request<QueryPeersetsCiDsRequest>,
+    ) -> std::result::Result<Response<QueryPeersetsCiDsResponse>, Status> {
+        todo!()
+    }
+}
+
+// error handling
+
+fn handle_err<T>(result: Result<T>) -> std::result::Result<Response<T>, Status> {
+    result
+        .map(|x| Response::new(x))
+        .map_err(|e| Status::internal(e.to_string()))
+}
+
+fn handle_err_std<T, E: Display>(
+    result: std::result::Result<T, E>,
+) -> std::result::Result<Response<T>, Status> {
+    result
+        .map(|x| Response::new(x))
+        .map_err(|e| Status::internal(e.to_string()))
+}
+
+/// configuration
+
+struct Configuration {
+    port: String,
+    wallet_pk: String,
+}
+
+fn load_configuration() -> Configuration {
+    let profile = std::env::var("ORG_PROFILE").expect("ORG_PROFILE should be set");
+
+    match profile.as_str() {
+        "peer_1" => Configuration {
+            port: "50051".to_string(),
+            wallet_pk: "2834824554106f1a77dd199dfc5456cb40091f560b3b3d2d3417bb04d04bd969"
+                .to_string(),
+        },
+        "peer_2" => Configuration {
+            port: "50052".to_string(),
+            wallet_pk: "d2ef8f291387de16e7ae1875f80d3d31a4b7e6687294862ff9793d584f933a5e"
+                .to_string(),
+        },
+        _ => {
+            panic!("Unknown profile {}", profile);
+        }
+    }
+}
+
+fn local_wallet(wallet_address: &str) -> LocalWallet {
+    wallet_address
+        .parse::<LocalWallet>()
+        .expect("should be valid wallet")
+        .with_chain_id(CHAIN_ID)
 }

@@ -1,5 +1,22 @@
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryPeersetsCiDsRequest {}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryPeersetsCiDsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub peerset_graphs: ::prost::alloc::vec::Vec<PeersetGraph>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PeersetGraph {
+    #[prost(string, tag = "1")]
+    pub peerset_address: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub permission_graph_cid: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreatePeersetRequest {
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
@@ -12,6 +29,8 @@ pub struct CreatePeersetRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreatePeersetResponse {
     #[prost(string, tag = "1")]
+    pub cid: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
     pub deployed_peerset_smart_contract_address: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -19,6 +38,10 @@ pub struct CreatePeersetResponse {
 pub struct PeersetCreatedRequest {
     #[prost(string, tag = "1")]
     pub deployed_peerset_smart_contract_address: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub permission_graph_cid: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "3")]
+    pub peers: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -103,8 +126,8 @@ impl NodeType {
 /// Generated client implementations.
 pub mod organisation_dev_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-    use tonic::codegen::http::Uri;
     use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
     #[derive(Debug, Clone)]
     pub struct OrganisationDevClient<T> {
         inner: tonic::client::Grpc<T>,
@@ -148,8 +171,9 @@ pub mod organisation_dev_client {
                     <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
                 >,
             >,
-            <T as tonic::codegen::Service<http::Request<tonic::body::BoxBody>>>::Error:
-                Into<StdError> + Send + Sync,
+            <T as tonic::codegen::Service<
+                http::Request<tonic::body::BoxBody>,
+            >>::Error: Into<StdError> + Send + Sync,
         {
             OrganisationDevClient::new(InterceptedService::new(inner, interceptor))
         }
@@ -173,15 +197,19 @@ pub mod organisation_dev_client {
             &mut self,
             request: impl tonic::IntoRequest<super::CreatePeersetRequest>,
         ) -> Result<tonic::Response<super::CreatePeersetResponse>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path =
-                http::uri::PathAndQuery::from_static("/command.OrganisationDev/CreatePeerset");
+            let path = http::uri::PathAndQuery::from_static(
+                "/command.OrganisationDev/CreatePeerset",
+            );
             self.inner.unary(request.into_request(), path, codec).await
         }
         /// notify peer that a new peerset has been created,
@@ -189,15 +217,19 @@ pub mod organisation_dev_client {
             &mut self,
             request: impl tonic::IntoRequest<super::PeersetCreatedRequest>,
         ) -> Result<tonic::Response<super::PeersetCreatedResponse>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path =
-                http::uri::PathAndQuery::from_static("/command.OrganisationDev/PeersetCreated");
+            let path = http::uri::PathAndQuery::from_static(
+                "/command.OrganisationDev/PeersetCreated",
+            );
             self.inner.unary(request.into_request(), path, codec).await
         }
         /// triggers process of proposing a change to the permission graph.
@@ -205,15 +237,39 @@ pub mod organisation_dev_client {
             &mut self,
             request: impl tonic::IntoRequest<super::ProposeChangeRequest>,
         ) -> Result<tonic::Response<super::ProposeChangeResponse>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path =
-                http::uri::PathAndQuery::from_static("/command.OrganisationDev/ProposeChange");
+            let path = http::uri::PathAndQuery::from_static(
+                "/command.OrganisationDev/ProposeChange",
+            );
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        /// verification: just read the graph
+        pub async fn query_peersets_cid(
+            &mut self,
+            request: impl tonic::IntoRequest<super::QueryPeersetsCiDsRequest>,
+        ) -> Result<tonic::Response<super::QueryPeersetsCiDsResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/command.OrganisationDev/QueryPeersetsCID",
+            );
             self.inner.unary(request.into_request(), path, codec).await
         }
     }
@@ -240,6 +296,11 @@ pub mod organisation_dev_server {
             &self,
             request: tonic::Request<super::ProposeChangeRequest>,
         ) -> Result<tonic::Response<super::ProposeChangeResponse>, tonic::Status>;
+        /// verification: just read the graph
+        async fn query_peersets_cid(
+            &self,
+            request: tonic::Request<super::QueryPeersetsCiDsRequest>,
+        ) -> Result<tonic::Response<super::QueryPeersetsCiDsResponse>, tonic::Status>;
     }
     #[derive(Debug)]
     pub struct OrganisationDevServer<T: OrganisationDev> {
@@ -260,7 +321,10 @@ pub mod organisation_dev_server {
                 send_compression_encodings: Default::default(),
             }
         }
-        pub fn with_interceptor<F>(inner: T, interceptor: F) -> InterceptedService<Self, F>
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> InterceptedService<Self, F>
         where
             F: tonic::service::Interceptor,
         {
@@ -288,7 +352,10 @@ pub mod organisation_dev_server {
         type Response = http::Response<tonic::body::BoxBody>;
         type Error = std::convert::Infallible;
         type Future = BoxFuture<Self::Response, Self::Error>;
-        fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        fn poll_ready(
+            &mut self,
+            _cx: &mut Context<'_>,
+        ) -> Poll<Result<(), Self::Error>> {
             Poll::Ready(Ok(()))
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
@@ -297,18 +364,23 @@ pub mod organisation_dev_server {
                 "/command.OrganisationDev/CreatePeerset" => {
                     #[allow(non_camel_case_types)]
                     struct CreatePeersetSvc<T: OrganisationDev>(pub Arc<T>);
-                    impl<T: OrganisationDev>
-                        tonic::server::UnaryService<super::CreatePeersetRequest>
-                        for CreatePeersetSvc<T>
-                    {
+                    impl<
+                        T: OrganisationDev,
+                    > tonic::server::UnaryService<super::CreatePeersetRequest>
+                    for CreatePeersetSvc<T> {
                         type Response = super::CreatePeersetResponse;
-                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::CreatePeersetRequest>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move { (*inner).create_peerset(request).await };
+                            let fut = async move {
+                                (*inner).create_peerset(request).await
+                            };
                             Box::pin(fut)
                         }
                     }
@@ -319,10 +391,11 @@ pub mod organisation_dev_server {
                         let inner = inner.0;
                         let method = CreatePeersetSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
-                            accept_compression_encodings,
-                            send_compression_encodings,
-                        );
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            );
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -331,18 +404,23 @@ pub mod organisation_dev_server {
                 "/command.OrganisationDev/PeersetCreated" => {
                     #[allow(non_camel_case_types)]
                     struct PeersetCreatedSvc<T: OrganisationDev>(pub Arc<T>);
-                    impl<T: OrganisationDev>
-                        tonic::server::UnaryService<super::PeersetCreatedRequest>
-                        for PeersetCreatedSvc<T>
-                    {
+                    impl<
+                        T: OrganisationDev,
+                    > tonic::server::UnaryService<super::PeersetCreatedRequest>
+                    for PeersetCreatedSvc<T> {
                         type Response = super::PeersetCreatedResponse;
-                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::PeersetCreatedRequest>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move { (*inner).peerset_created(request).await };
+                            let fut = async move {
+                                (*inner).peerset_created(request).await
+                            };
                             Box::pin(fut)
                         }
                     }
@@ -353,10 +431,11 @@ pub mod organisation_dev_server {
                         let inner = inner.0;
                         let method = PeersetCreatedSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
-                            accept_compression_encodings,
-                            send_compression_encodings,
-                        );
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            );
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -365,18 +444,23 @@ pub mod organisation_dev_server {
                 "/command.OrganisationDev/ProposeChange" => {
                     #[allow(non_camel_case_types)]
                     struct ProposeChangeSvc<T: OrganisationDev>(pub Arc<T>);
-                    impl<T: OrganisationDev>
-                        tonic::server::UnaryService<super::ProposeChangeRequest>
-                        for ProposeChangeSvc<T>
-                    {
+                    impl<
+                        T: OrganisationDev,
+                    > tonic::server::UnaryService<super::ProposeChangeRequest>
+                    for ProposeChangeSvc<T> {
                         type Response = super::ProposeChangeResponse;
-                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::ProposeChangeRequest>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move { (*inner).propose_change(request).await };
+                            let fut = async move {
+                                (*inner).propose_change(request).await
+                            };
                             Box::pin(fut)
                         }
                     }
@@ -387,23 +471,68 @@ pub mod organisation_dev_server {
                         let inner = inner.0;
                         let method = ProposeChangeSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
-                            accept_compression_encodings,
-                            send_compression_encodings,
-                        );
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            );
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)
                 }
-                _ => Box::pin(async move {
-                    Ok(http::Response::builder()
-                        .status(200)
-                        .header("grpc-status", "12")
-                        .header("content-type", "application/grpc")
-                        .body(empty_body())
-                        .unwrap())
-                }),
+                "/command.OrganisationDev/QueryPeersetsCID" => {
+                    #[allow(non_camel_case_types)]
+                    struct QueryPeersetsCIDSvc<T: OrganisationDev>(pub Arc<T>);
+                    impl<
+                        T: OrganisationDev,
+                    > tonic::server::UnaryService<super::QueryPeersetsCiDsRequest>
+                    for QueryPeersetsCIDSvc<T> {
+                        type Response = super::QueryPeersetsCiDsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::QueryPeersetsCiDsRequest>,
+                        ) -> Self::Future {
+                            let inner = self.0.clone();
+                            let fut = async move {
+                                (*inner).query_peersets_cid(request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = QueryPeersetsCIDSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                _ => {
+                    Box::pin(async move {
+                        Ok(
+                            http::Response::builder()
+                                .status(200)
+                                .header("grpc-status", "12")
+                                .header("content-type", "application/grpc")
+                                .body(empty_body())
+                                .unwrap(),
+                        )
+                    })
+                }
             }
         }
     }

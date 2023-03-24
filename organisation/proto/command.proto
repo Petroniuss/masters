@@ -17,7 +17,16 @@ service OrganisationDev {
 }
 
 message QueryPeersetsCIDsRequest { }
-message QueryPeersetsCIDsResponse { }
+
+message QueryPeersetsCIDsResponse {
+  repeated PeersetGraph peerset_graphs = 1;
+}
+
+message PeersetGraph {
+  string peerset_address = 1;
+  string permission_graph_cid = 2;
+}
+
 
 /// Step 0.
 /// Prepare a script that runs two peers in different panes on tmux, should be helpful.
@@ -62,13 +71,16 @@ message CreatePeersetRequest {
 }
 
 message CreatePeersetResponse {
-  string deployed_peerset_smart_contract_address = 1;
+  string cid = 1;
+  string deployed_peerset_smart_contract_address = 2;
 }
 
 
 
 message PeersetCreatedRequest {
   string deployed_peerset_smart_contract_address = 1;
+  string permission_graph_cid = 2;
+  repeated string peers = 3;
 }
 
 message PeersetCreatedResponse {}

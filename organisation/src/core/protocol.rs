@@ -1,16 +1,21 @@
 use std::collections::HashMap;
 
 use crate::core::ethereum::{EthereumFacade, EthereumFacadeImpl};
-use crate::core::ipfs::{IPFSFacade, NoOpIPFSFacade};
+use crate::core::ipfs::{CheatingIPFSFacade, IPFSFacade};
+use crate::core::protocol::BlockchainEvent::NewPeersetCreated;
 use color_eyre::eyre::eyre;
 use ethers_signers::LocalWallet;
-use log::warn;
+use itertools::Itertools;
+use log::{info, warn};
 use tokio::select;
 use tokio::sync::oneshot::error::RecvError;
 use tokio::task::JoinHandle;
 
 use crate::errors::Result;
-use crate::grpc::command::{CreatePeersetRequest, CreatePeersetResponse, Node, PermissionGraph};
+use crate::grpc::command::{
+    CreatePeersetRequest, CreatePeersetResponse, Node, PeersetCreatedRequest, PeersetGraph,
+    PermissionGraph, QueryPeersetsCiDsRequest, QueryPeersetsCiDsResponse,
+};
 use crate::ipfs::ipfs_client::CID;
 
 /// todo: define interface for access queries.
@@ -18,17 +23,18 @@ use crate::ipfs::ipfs_client::CID;
 pub struct ProtocolFacade {
     query_sender: tokio::sync::mpsc::Sender<QueryEvent>,
     command_sender: tokio::sync::mpsc::Sender<CommandEvent>,
+    blockchain_sender: tokio::sync::mpsc::Sender<BlockchainEvent>,
 }
 
 impl ProtocolFacade {
     pub fn new(wallet: LocalWallet) -> Self {
         let (blockchain_sender, blockchain_receiver) = tokio::sync::mpsc::channel(100);
-        let (_ipfs_sender, ipfs_receiver) = tokio::sync::mpsc::channel(100);
+        let (ipfs_sender, ipfs_receiver) = tokio::sync::mpsc::channel(100);
         let (query_sender, query_receiver) = tokio::sync::mpsc::channel(100);
         let (command_sender, command_receiver) = tokio::sync::mpsc::channel(100);
 
-        let ipfs_facade = NoOpIPFSFacade::new();
-        let ethereum_facade = EthereumFacadeImpl::new(wallet, blockchain_sender);
+        let ipfs_facade = CheatingIPFSFacade::new(ipfs_sender);
+        let ethereum_facade = EthereumFacadeImpl::new(wallet, blockchain_sender.clone());
 
         let _handle = ProtocolService::start_event_loop(
             blockchain_receiver,
@@ -42,6 +48,7 @@ impl ProtocolFacade {
         ProtocolFacade {
             command_sender,
             query_sender,
+            blockchain_sender,
         }
     }
 
@@ -75,6 +82,39 @@ impl ProtocolFacade {
             .expect("should succeed");
 
         receiver.await
+    }
+
+    pub async fn peerset_created(&self, peerset_created: PeersetCreatedRequest) {
+        self.blockchain_sender
+            .try_send(NewPeersetCreated {
+                peers: peerset_created
+                    .peers
+                    .into_iter()
+                    .map(|e| Peer {
+                        blockchain_address: e,
+                    })
+                    .collect_vec(),
+                permission_graph_cid: peerset_created.permission_graph_cid,
+                peerset_address: peerset_created.deployed_peerset_smart_contract_address,
+                context: None,
+            })
+            .expect("should succeed");
+    }
+
+    pub async fn query_peersets(
+        &self,
+        query_peersets: QueryPeersetsCiDsRequest,
+    ) -> QueryPeersetsCiDsResponse {
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        self.query_sender
+            .send(QueryEvent::QueryPeersets {
+                request: query_peersets,
+                response_channel: sender,
+            })
+            .await
+            .expect("should succeed");
+
+        receiver.await.unwrap()
     }
 }
 
@@ -115,6 +155,11 @@ enum QueryEvent {
     QueryUsersInGroup {
         group_id: String,
         response_channel: tokio::sync::oneshot::Sender<UsersInGroupResponse>,
+    },
+
+    QueryPeersets {
+        request: QueryPeersetsCiDsRequest,
+        response_channel: tokio::sync::oneshot::Sender<QueryPeersetsCiDsResponse>,
     },
 }
 
@@ -188,21 +233,25 @@ impl ProtocolService {
             loop {
                 let result = select! {
                     Some(blockchain_event) = blockchain_events_channel.recv() => {
+                        info!("Handling event: {:?}", blockchain_event);
                         protocol.handle_blockchain_event(blockchain_event)
                     }
                     Some(ipfs_event) = ipfs_events_channel.recv() => {
+                        info!("Handling event: {:?}", ipfs_event);
                         protocol.handle_ipfs_event(ipfs_event)
                     }
                     Some(query_event) = query_events_channel.recv() => {
+                        info!("Handling event: {:?}", query_event);
                         protocol.handle_query_event(query_event)
                     }
                     Some(command_event) = command_events_channel.recv() => {
+                        info!("Handling event: {:?}", command_event);
                         protocol.handle_command_event(command_event)
                     }
                 };
 
                 if let Err(e) = result {
-                    warn!("Error occurred during processing of events: {}", e)
+                    panic!("Error occurred during processing of events: {}", e)
                 }
             }
         });
@@ -259,6 +308,23 @@ impl ProtocolService {
                     .send(UsersInGroupResponse { group_id, users })
                     .expect("Sending should succeed");
             }
+            QueryEvent::QueryPeersets {
+                request: _request,
+                response_channel,
+            } => {
+                let peerset_graphs = self
+                    .peersets
+                    .iter()
+                    .map(|(addr, peerset)| PeersetGraph {
+                        peerset_address: addr.clone(),
+                        permission_graph_cid: peerset.permission_graph_cid.clone(),
+                    })
+                    .collect_vec();
+
+                response_channel
+                    .send(QueryPeersetsCiDsResponse { peerset_graphs })
+                    .unwrap()
+            }
         }
 
         Ok(())
@@ -287,7 +353,7 @@ impl ProtocolService {
                 );
 
                 self.ipfs_facade
-                    .async_load_permission_graph(cid, address.clone());
+                    .async_load_permission_graph(cid.clone(), address.clone());
 
                 if let Some(context) = context {
                     match context {
@@ -296,6 +362,7 @@ impl ProtocolService {
                         } => {
                             response_channel
                                 .send(CreatePeersetResponse {
+                                    cid,
                                     deployed_peerset_smart_contract_address: address,
                                 })
                                 .expect("sending should succeed");
@@ -416,6 +483,8 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::ipfs::ipfs_client::CID;
+    use crate::poc::shared;
+    use crate::poc::shared::demo_graph;
 
     static PEER_ONE_ADDR: &'static str = "0xd13c4379bfc9a0ea5e147b2d37f65eb2400dfd7b";
     static PEER_TWO_ADDR: &'static str = "0xd248e4a8407ed7ff9bdbc396ba46723b8101c86e";
@@ -452,6 +521,7 @@ mod tests {
         let protocol_facade = ProtocolFacade {
             command_sender,
             query_sender,
+            blockchain_sender,
         };
 
         // when
@@ -459,7 +529,7 @@ mod tests {
             .create_peerset(CreatePeersetRequest {
                 name: "p1".to_string(),
                 peers: vec![PEER_ONE_ADDR.to_string(), PEER_TWO_ADDR.to_string()],
-                initial_permission_graph: Some(test_graph_with_user_and_group()),
+                initial_permission_graph: Some(shared::demo_graph()),
             })
             .await
             .expect("should succeed");
@@ -511,7 +581,7 @@ mod tests {
             self.sender
                 .try_send(IPFSEvent::PermissionGraphLoaded {
                     cid,
-                    permission_graph: test_graph_with_user_and_group(),
+                    permission_graph: shared::demo_graph(),
                     peerset_address,
                 })
                 .expect("should succeed");
@@ -526,37 +596,5 @@ mod tests {
                 })
                 .expect("should succeed");
         }
-    }
-
-    fn test_graph_with_user_and_group() -> PermissionGraph {
-        return PermissionGraph {
-            edges: HashMap::from([
-                (
-                    "ur_1".to_string(),
-                    Edges {
-                        source: Some(Node {
-                            id: "ur_1".to_string(),
-                            r#type: NodeType::User as i32,
-                            peerset_address: None,
-                        }),
-                        edges: vec![Edge {
-                            destination_node_id: "gr_1".to_string(),
-                            permission: "belongs".to_string(),
-                        }],
-                    },
-                ),
-                (
-                    "gr_1".to_string(),
-                    Edges {
-                        source: Some(Node {
-                            id: "gr_1".to_string(),
-                            r#type: NodeType::User as i32,
-                            peerset_address: None,
-                        }),
-                        edges: vec![],
-                    },
-                ),
-            ]),
-        };
     }
 }

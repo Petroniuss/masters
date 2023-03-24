@@ -1,12 +1,15 @@
 use crate::data_model::organisation::{ExecutingOrganisation, Organisation};
 use crate::data_model::peer_set::{Peer, PeerSet};
 use crate::errors::Result;
+use crate::grpc::command::{Edge, Edges, Node, NodeType, PermissionGraph};
+use crate::ipfs::ipfs_client::CID;
 use crate::on_chain::ethereum_client;
 use crate::on_chain::ethereum_client::{
     EnrichedEthereumClient, EthereumClient, ToEthereumClientEnriched,
 };
 use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
+use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -57,6 +60,42 @@ pub fn demo_peer_set_with_two_peers() -> Result<PeerSet> {
             },
         ],
     })
+}
+
+pub fn demo_graph() -> PermissionGraph {
+    PermissionGraph {
+        edges: HashMap::from([
+            (
+                "ur_1".to_string(),
+                Edges {
+                    source: Some(Node {
+                        id: "ur_1".to_string(),
+                        r#type: NodeType::User as i32,
+                        peerset_address: None,
+                    }),
+                    edges: vec![Edge {
+                        destination_node_id: "gr_1".to_string(),
+                        permission: "belongs".to_string(),
+                    }],
+                },
+            ),
+            (
+                "gr_1".to_string(),
+                Edges {
+                    source: Some(Node {
+                        id: "gr_1".to_string(),
+                        r#type: NodeType::User as i32,
+                        peerset_address: None,
+                    }),
+                    edges: vec![],
+                },
+            ),
+        ]),
+    }
+}
+
+pub fn demo_graph_cid() -> CID {
+    return "ipfs://cid-test-foo-bar".to_string();
 }
 
 // todo: this should be a real pointer.
