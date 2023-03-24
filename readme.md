@@ -32,6 +32,18 @@
 
 ## Local Dev Setup
 
+### quick setup
+
+To start a local ethereum node and IPFS run:
+```bash
+docker-compose up -d
+```
+
+To run two separate peers and coordinator run:
+```bash
+./run-dev.sh
+```
+
 ### blockchain
 
 For developing smart contracts I've chosen [foundry](https://github.com/foundry-rs/foundry).

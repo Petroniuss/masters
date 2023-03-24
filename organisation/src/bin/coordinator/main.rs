@@ -1,39 +1,43 @@
+use backoff::future::retry;
+use backoff::ExponentialBackoff;
 use grpc::command;
 use grpc::command::organisation_dev_client::OrganisationDevClient;
 use log::info;
 use std::collections::HashMap;
-use tonic::transport::Endpoint;
+use std::thread::sleep;
+use std::time::Duration;
+use tonic::transport::{Channel, Endpoint};
 
 use organisation::grpc;
 use organisation::grpc::command::{Edge, Edges, Node, NodeType, PermissionGraph};
 use organisation::poc::shared;
 use organisation::poc::shared::shared_init;
 
+async fn connect(endpoint: &'static str) -> Channel {
+    retry(ExponentialBackoff::default(), || async {
+        info!("Connecting to node at {}", endpoint);
+        let channel = Endpoint::from_static(endpoint).connect().await?;
+        Ok(channel)
+    })
+    .await
+    .expect("should be able to connect to node")
+}
+
 /// **coordinator**
 ///
 /// The coordinator is used for testing purposes,
-/// It sends commands via gRPC to nodes to verify their behaviour.
-///
-///
-/// Scenario 1:
-/// Initialise a transaction that spans a single peerset:
-/// - create a peerset by peer_1,
-/// - notify peer_2 that the peerset has been created,
-/// - propose a change by peer_2,
-/// - tell peer_1 to acknowledge proposed change,
-/// - query both peers about the peerset state to verify that the change has been applied.
+/// It sends commands via gRPC to nodes to verify their behaviour & state.
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     shared_init()?;
-    let channel = Endpoint::from_static("http://[::1]:50051")
-        .connect()
-        .await?;
+    let channel = connect("http://[::1]:50051").await;
     let mut client_1 = OrganisationDevClient::new(channel);
 
-    let channel = Endpoint::from_static("http://[::1]:50052")
-        .connect()
-        .await?;
+    let channel = connect("http://[::1]:50052").await;
     let mut client_2 = OrganisationDevClient::new(channel);
+
+    info!("Coordinator says hi");
+    sleep(Duration::from_secs(20));
 
     let permission_graph_p1_v1 = PermissionGraph {
         edges: HashMap::from([

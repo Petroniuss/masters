@@ -11,7 +11,49 @@ service OrganisationDev {
 
   // triggers process of proposing a change to the permission graph.
   rpc ProposeChange (ProposeChangeRequest) returns (ProposeChangeResponse) {}
+
+  // verification: just read the graph
+  rpc QueryPeersetsCID (QueryPeersetsCIDsRequest) returns (QueryPeersetsCIDsResponse) {}
 }
+
+message QueryPeersetsCIDsRequest { }
+message QueryPeersetsCIDsResponse { }
+
+/// Step 0.
+/// Prepare a script that runs two peers in different panes on tmux, should be helpful.
+
+/// Let's start with creating a script that runs
+
+/// First step (Wednesday)
+/// 1. create peerset:
+///     - coordinator: selects one peer to create peerset smart contract
+///     - peer: deploys smart contract with a set of peers
+//      - coordinator: sends events to peers that they're now part of a given peerset
+///     - each peer: subscribes to peerset smart contract
+/// 2. propose a change,
+/// 3. verify that a change has been applied and all peers see a new graph:
+///   - just read the graph or its version from every peer and make sure that they see the same thing.
+
+
+// Important part: connect to blockchain and listen to events.
+// IPFS: not so important, skip that if necessary!
+
+// Impl Detail:
+// - how do peers find that they've been asked to be part of a given peerset?
+// - another smart-contract which they need to monitor?
+// - (TODO: for now just send an event that a peerset has been created)
+
+
+/// Future work:
+/// Answering DAC queries:
+/// - bottom line: model should be as scrappy as possible but we need that for verification!
+
+/// Peerset creation details:
+/// - every peer needs to agree to be part of a given peerset, before creating a peerset.
+
+/// Q: voting part
+/// Just say yes to all changes (skip verification for now)
+
 
 message CreatePeersetRequest {
   string name = 1;

@@ -45,6 +45,9 @@ async-trait = "0.1.60"
 tonic = "0.8"
 prost = "0.11.8"
 
+# retry
+backoff = { version = "0.4.0", features = ["tokio"] }
+
 # testing
 [dev-dependencies]
 env_logger = "0.9.0"

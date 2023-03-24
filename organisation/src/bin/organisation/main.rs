@@ -28,6 +28,31 @@ use organisation::ipfs::ipfs_client::IPFSClientFacade;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
 
+struct Configuration {
+    port: String,
+    wallet_pk: String,
+}
+
+fn load_configuration() -> Configuration {
+    let profile = std::env::var("ORG_PROFILE").expect("ORG_PROFILE should be set");
+
+    match profile.as_str() {
+        "peer_1" => Configuration {
+            port: "50051".to_string(),
+            wallet_pk: "2834824554106f1a77dd199dfc5456cb40091f560b3b3d2d3417bb04d04bd969"
+                .to_string(),
+        },
+        "peer_2" => Configuration {
+            port: "50052".to_string(),
+            wallet_pk: "d2ef8f291387de16e7ae1875f80d3d31a4b7e6687294862ff9793d584f933a5e"
+                .to_string(),
+        },
+        _ => {
+            panic!("Unknown profile {}", profile);
+        }
+    }
+}
+
 /// Rough Plan:
 /// Organisation should run in test-mode and listen for commands from the outside.
 /// I could have another application that sends commands to it and that way I could test it.
@@ -45,15 +70,14 @@ use tonic::{Request, Response, Status};
 #[tokio::main]
 async fn main() -> Result<()> {
     shared_init()?;
+    let configuration = load_configuration();
 
-    let port = std::env::var("PORT").unwrap_or_else(|_| "50051".to_string());
-    let addr = format!("[::1]:{}", port).parse()?;
+    let addr = format!("[::1]:{}", configuration.port).parse()?;
     info!("Running on: {}", addr);
 
-    let wallet_address = "2834824554106f1a77dd199dfc5456cb40091f560b3b3d2d3417bb04d04bd969";
-    let wallet = local_wallet(wallet_address);
-    let protocol_facade = ProtocolFacade::new(wallet);
+    let wallet = local_wallet(&configuration.wallet_pk);
 
+    let protocol_facade = ProtocolFacade::new(wallet);
     let organisation_service = OrganisationDevService::new(protocol_facade);
 
     Server::builder()
