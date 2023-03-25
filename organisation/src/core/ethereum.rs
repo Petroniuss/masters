@@ -8,6 +8,7 @@ use ethers::middleware::{NonceManagerMiddleware, SignerMiddleware};
 use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
+use log::info;
 use std::sync::Arc;
 use tokio::spawn;
 use tokio::sync::mpsc::Sender;
@@ -25,6 +26,8 @@ pub trait EthereumFacade: Send {
     );
 
     fn async_propose_change(&self, peerset_address: String, permission_graph_cid: CID);
+
+    fn subscribe_to_peerset_events(&self, peerset_address: String);
 }
 
 pub struct EthereumFacadeImpl {
@@ -71,6 +74,19 @@ impl EthereumFacade for EthereumFacadeImpl {
     }
 
     fn async_propose_change(&self, peerset_address: String, permission_graph_cid: CID) {
+        let address = peerset_address.parse::<Address>().unwrap();
+        let client = self.ethereum_client.clone();
+        spawn(async move {
+            client
+                .async_propose_change(address, permission_graph_cid)
+                .await;
+        });
+    }
+
+    // we're going to have a list of smart contracts that we monitor
+    // we might be asked to subscribe to more events
+    // and we need to
+    fn subscribe_to_peerset_events(&self, peerset_address: String) {
         todo!()
     }
 }
@@ -108,6 +124,24 @@ impl EthereumClient {
         let peer_set_smart_contract = contract_deployer.send().await?;
 
         Ok(peer_set_smart_contract)
+    }
+
+    async fn async_propose_change(&self, peerset_address: Address, cid: CID) {
+        let middleware = self.ethereum_middleware.clone();
+        let sc = PeerSetSmartContract::new(peerset_address, middleware);
+        let call = sc.propose_permission_graph_change(cid.clone());
+
+        info!(
+            "Proposing a change with cid {} to peerset {}",
+            peerset_address, cid
+        );
+        let pending_tx = call.send().await.unwrap();
+
+        let completed_tx = pending_tx.confirmations(1).await.unwrap().unwrap();
+        info!(
+            "Proposed a change with cid {} to peerset {}",
+            peerset_address, cid
+        );
     }
 }
 
