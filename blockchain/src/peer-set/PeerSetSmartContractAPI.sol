@@ -9,14 +9,15 @@ interface UsingPeerSetEvents {
 
     event PeerSetPermissionGraphUpdated(
         address peerRequestingChange,
-        address peerValidatingChange,
         string updatedPeerSetPermissionGraphIPFSPointer
     );
+
     event PeerSetPermissionGraphChangeRejected(
         address peerRequestingChange,
-        address peerValidatingChange,
         string rejectedPeerSetPermissionGraphIPFSPointer
     );
+
+    event PeerSetPermissionGraphVoteReceived(string cid, bool vote);
 }
 
 interface PeerSetSmartContractAPI is UsingPeerSetEvents {
@@ -24,16 +25,12 @@ interface PeerSetSmartContractAPI is UsingPeerSetEvents {
         string calldata proposedGraphIPFSPointer
     ) external;
 
-    function latestPeerSetPermissionGraphIPFSPointer()
+    function submitPeerVote(string calldata cid, bool vote) external;
+
+    function currentPeerSetPermissionGraphIPFSPointer()
         external
         view
         returns (string memory);
 
     function isPeer(address peer) external view returns (bool);
-
-    function __callback(
-        bytes32 requestId,
-        bool result,
-        address peerValidatingChange
-    ) external;
 }
