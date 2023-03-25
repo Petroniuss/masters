@@ -1,7 +1,7 @@
-use crate::bindings::peer_broadcast::PeerBroadcast;
-use crate::bindings::permission_verifier_oracle::PermissionVerifierOracle;
 use crate::data_model::organisation::ExecutingOrganisation;
 use crate::errors::Result;
+use crate::transport::ethereum::peer_broadcast::PeerBroadcast;
+use crate::transport::ethereum::permission_verifier_oracle::PermissionVerifierOracle;
 use ethers::middleware::gas_oracle::{EthGasStation, GasOracleMiddleware};
 use ethers::middleware::NonceManagerMiddleware;
 use ethers::middleware::SignerMiddleware;

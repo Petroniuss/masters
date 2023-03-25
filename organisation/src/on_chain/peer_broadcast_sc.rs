@@ -1,8 +1,8 @@
-use crate::bindings::peer_set_smart_contract::PeerSetSmartContract;
 use crate::data_model::peer_set::PeerSet;
 use crate::errors::Result;
 use crate::on_chain::contract_deployment::PeerSetSmartContractDeployment;
 use crate::on_chain::ethereum_client::{EnrichedEthereumClient, EthereumMiddleware};
+use crate::transport::ethereum::peer_set_smart_contract::PeerSetSmartContract;
 use async_trait::async_trait;
 use log::info;
 

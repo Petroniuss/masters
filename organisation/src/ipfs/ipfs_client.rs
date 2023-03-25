@@ -1,5 +1,5 @@
 use crate::errors::Result;
-use crate::grpc::command::PermissionGraph;
+use crate::transport::grpc::command::PermissionGraph;
 use prost::Message;
 
 pub struct IPFSClientFacade {}

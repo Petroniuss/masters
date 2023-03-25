@@ -1,17 +1,17 @@
 use backoff::future::retry;
 use backoff::ExponentialBackoff;
-use grpc::command;
-use grpc::command::organisation_dev_client::OrganisationDevClient;
-use log::info;
 
+use log::info;
+use organisation::transport::grpc::command;
 use tonic::transport::{Channel, Endpoint};
 
-use organisation::grpc;
-use organisation::grpc::command::{
-    Edge, Edges, Node, NodeType, PeersetGraph, QueryPeersetsCiDsRequest,
-};
 use organisation::poc::shared;
 use organisation::poc::shared::shared_init;
+
+use organisation::transport::grpc::command::organisation_dev_client::OrganisationDevClient;
+use organisation::transport::grpc::command::{
+    Edge, Edges, Node, NodeType, PeersetGraph, QueryPeersetsCiDsRequest,
+};
 
 async fn connect(endpoint: &'static str) -> Channel {
     retry(ExponentialBackoff::default(), || async {

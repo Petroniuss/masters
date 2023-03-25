@@ -12,12 +12,12 @@ use tokio::sync::oneshot::error::RecvError;
 use tokio::task::JoinHandle;
 
 use crate::errors::Result;
-use crate::grpc::command::{
+use crate::ipfs::ipfs_client::CID;
+use crate::transport::grpc::command::{
     CreatePeersetRequest, CreatePeersetResponse, Node, PeersetCreatedRequest, PeersetGraph,
     PermissionGraph, ProposeChangeRequest, ProposeChangeResponse, QueryPeersetsCiDsRequest,
     QueryPeersetsCiDsResponse,
 };
-use crate::ipfs::ipfs_client::CID;
 
 /// todo: define interface for access queries.
 /// todo: define interface for commands
@@ -296,8 +296,8 @@ impl ProtocolService {
                 );
             }
             CommandEvent::ProposeChange {
-                request,
-                response_channel,
+                request: _,
+                response_channel: _,
             } => {
                 // need to save this guy to ipfs first, ehh and only then propose a change.
                 // todo: refactor to save context in the event loop
@@ -457,7 +457,7 @@ impl ProtocolService {
 
                 match &mut peerset.transaction_state {
                     PeerSetTransactionState::ChangeProposed {
-                        votes, proposed_by: _, permission_graph, permission_graph_cid: new_permission_graph_cid, change_id: _, response_channel
+                        votes: _, proposed_by: _, permission_graph, permission_graph_cid: new_permission_graph_cid, change_id: _, response_channel: _
                     } => {
                         if new_permission_graph_cid == &cid_loaded {
                             // todo: at this point we can do some processing and vote whether change should be accepted or rejected.
@@ -514,7 +514,7 @@ mod tests {
     use crate::core::protocol::{
         BlockchainEvent, CommandEvent, IPFSEvent, Peer, ProtocolFacade, ProtocolService,
     };
-    use crate::grpc::command::{CreatePeersetRequest, PermissionGraph};
+    use crate::transport::grpc::command::{CreatePeersetRequest, PermissionGraph};
 
     use crate::ipfs::ipfs_client::CID;
     use crate::poc::shared;
@@ -608,7 +608,11 @@ mod tests {
                 .expect("should succeed");
         }
 
-        fn async_propose_change(&self, peerset_address: String, permission_graph_cid: CID) {
+        fn async_propose_change(&self, _peerset_address: String, _permission_graph_cid: CID) {
+            todo!()
+        }
+
+        fn subscribe_to_peerset_events(&self, _peerset_address: String) {
             todo!()
         }
     }

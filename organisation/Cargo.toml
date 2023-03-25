@@ -16,8 +16,8 @@ path = "src/bin/coordinator/main.rs"
 
 [dependencies]
 # ethereum
-ethers = { version = "1.0.0", features = ["legacy"] }
-ethers-signers = "1.0.0"
+ethers = { version = "2.0.1", features = ["legacy"] }
+ethers-signers = "2.0.1"
 
 # graph
 petgraph = "0.6.2"

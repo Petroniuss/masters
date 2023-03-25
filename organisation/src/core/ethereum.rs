@@ -1,7 +1,7 @@
-use crate::bindings::peer_set_smart_contract::PeerSetSmartContract;
 use crate::core::protocol::{BlockchainEvent, CommandEvent, Peer};
 use crate::errors::Result;
 use crate::ipfs::ipfs_client::CID;
+use crate::transport::ethereum::peer_set_smart_contract::PeerSetSmartContract;
 use ethers::abi::{Token, Tokenizable};
 use ethers::middleware::gas_oracle::{EthGasStation, GasOracleMiddleware};
 use ethers::middleware::{NonceManagerMiddleware, SignerMiddleware};
@@ -86,8 +86,8 @@ impl EthereumFacade for EthereumFacadeImpl {
     // we're going to have a list of smart contracts that we monitor
     // we might be asked to subscribe to more events
     // and we need to
-    fn subscribe_to_peerset_events(&self, peerset_address: String) {
-        todo!()
+    fn subscribe_to_peerset_events(&self, _peerset_address: String) {
+        todo!();
     }
 }
 
@@ -137,7 +137,7 @@ impl EthereumClient {
         );
         let pending_tx = call.send().await.unwrap();
 
-        let completed_tx = pending_tx.confirmations(1).await.unwrap().unwrap();
+        let _completed_tx = pending_tx.confirmations(1).await.unwrap().unwrap();
         info!(
             "Proposed a change with cid {} to peerset {}",
             peerset_address, cid

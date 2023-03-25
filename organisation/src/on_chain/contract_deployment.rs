@@ -1,17 +1,16 @@
-use crate::bindings;
-use crate::bindings::peer_broadcast::PeerBroadcast;
-use crate::bindings::permission_verifier_oracle::PermissionVerifierOracle;
-
 use crate::data_model::peer_set::PeerSet;
 use crate::errors::Result;
 use crate::on_chain::ethereum_client::{
     EnrichedEthereumClient, EthereumClient, EthereumMiddleware,
 };
+
+use crate::transport::ethereum::peer_broadcast::PeerBroadcast;
+
+use crate::transport::ethereum::peer_set_smart_contract::PeerSetSmartContract;
+use crate::transport::ethereum::permission_verifier_oracle::PermissionVerifierOracle;
 use async_trait::async_trait;
-use bindings::peer_set_smart_contract::peer_set_smart_contract;
 use ethers::abi::{Token, Tokenizable};
 use log::info;
-use peer_set_smart_contract::PeerSetSmartContract;
 
 #[async_trait]
 pub trait PeerSetSmartContractDeployment {

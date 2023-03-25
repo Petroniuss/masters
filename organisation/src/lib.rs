@@ -1,8 +1,9 @@
-pub mod bindings;
 pub mod core;
+pub mod transport;
+
+/// these modules should be removed sooner or later :)
 pub mod data_model;
 pub mod errors;
-pub mod grpc;
 pub mod ipfs;
 pub mod on_chain;
 pub mod poc;

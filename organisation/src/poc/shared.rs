@@ -1,12 +1,12 @@
 use crate::data_model::organisation::{ExecutingOrganisation, Organisation};
 use crate::data_model::peer_set::{Peer, PeerSet};
 use crate::errors::Result;
-use crate::grpc::command::{Edge, Edges, Node, NodeType, PermissionGraph};
 use crate::ipfs::ipfs_client::CID;
 use crate::on_chain::ethereum_client;
 use crate::on_chain::ethereum_client::{
     EnrichedEthereumClient, EthereumClient, ToEthereumClientEnriched,
 };
+use crate::transport::grpc::command::{Edge, Edges, Node, NodeType, PermissionGraph};
 use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
 use std::collections::HashMap;

@@ -88,7 +88,7 @@ To generate rust bindings for smart contracts, run:
 
 ```bash
 forge bind \
-  --bindings-path ../organisation/src/bindings \
+  --bindings-path ../organisation/src/transport/ethereum \
   --module \
   --overwrite
 ```

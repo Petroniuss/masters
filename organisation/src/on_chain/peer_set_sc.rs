@@ -1,4 +1,4 @@
-use crate::bindings::peer_set_smart_contract::PeerSetSmartContract;
+use crate::transport::ethereum::peer_set_smart_contract::PeerSetSmartContract;
 
 use crate::errors::Result;
 use crate::on_chain::ethereum_client::{EnrichedEthereumClient, EthereumMiddleware};

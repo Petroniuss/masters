@@ -10,7 +10,6 @@ pub mod peer_set_smart_contract_api;
 pub mod permission_graph;
 pub mod permission_verifier_oracle;
 pub mod permission_verifier_oracle_api;
-pub mod std_chains;
 pub mod using_peer_broadcast_events;
 pub mod using_peer_set_events;
 pub mod using_permission_verifier_oracle_events;

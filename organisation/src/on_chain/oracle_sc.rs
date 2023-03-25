@@ -1,5 +1,5 @@
-use crate::bindings::permission_verifier_oracle::PermissionGraphValidationRequestedFilter;
-use crate::bindings::permission_verifier_oracle::{
+use crate::transport::ethereum::permission_verifier_oracle::PermissionGraphValidationRequestedFilter;
+use crate::transport::ethereum::permission_verifier_oracle::{
     PermissionVerifierOracle, PermissionVerifierOracleEvents,
 };
 
