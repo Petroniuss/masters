@@ -100,7 +100,11 @@ impl OrganisationDev for OrganisationDevService {
     ) -> std::result::Result<Response<ProposeChangeResponse>, Status> {
         info!("Proposing a change: {:?}", request);
 
-        todo!()
+        let result = self
+            .protocol_facade
+            .propose_change(request.into_inner())
+            .await;
+        handle_err(Ok(result))
     }
 
     async fn query_peersets_cid(

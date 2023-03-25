@@ -124,8 +124,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         tmp
     };
 
-    info!("Proposing a change by peer 2..");
-    let response = client_2
+    info!("Proposing a change by peer 1..");
+    let response = client_1
         .propose_change(tonic::Request::new(command::ProposeChangeRequest {
             peerset_address: peerset_response
                 .deployed_peerset_smart_contract_address

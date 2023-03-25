@@ -43,6 +43,13 @@ message PeersetGraph {
 /// 3. verify that a change has been applied and all peers see a new graph:
 ///   - just read the graph or its version from every peer and make sure that they see the same thing.
 
+/// todo:
+/// - vote for a change and finish RPC after voting..
+/// - for now one has to first deploy oracle smart contract (remove it!)
+/// - decide whether we want to keep the oracle for registering peersets or not.
+/// - cleanup the code, otherwise it's going to be a mess.
+/// - implement IPFS
+
 
 // Important part: connect to blockchain and listen to events.
 // IPFS: not so important, skip that if necessary!

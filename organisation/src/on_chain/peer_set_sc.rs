@@ -3,7 +3,9 @@ use crate::transport::ethereum::peer_set_smart_contract::PeerSetSmartContract;
 use crate::errors::Result;
 use crate::on_chain::ethereum_client::{EnrichedEthereumClient, EthereumMiddleware};
 
+use ethers::contract::ContractError;
 use ethers::types::Address;
+use ethers_providers::PendingTransaction;
 use log::info;
 use std::str::FromStr;
 
@@ -21,7 +23,15 @@ impl PeerSetSmartContractService {
             call.tx, changed_graph_ipfs
         );
 
-        let pending_tx = call.send().await?;
+        let pending_tx = call.send().await;
+        let pending_tx = match pending_tx {
+            Ok(x) => x,
+            Err(e) => {
+                let x = e.decode_revert::<String>();
+                info!("error: {:?}", x);
+                panic!();
+            }
+        };
         info!("Proposed a change: {:?}", pending_tx);
 
         let _receipt = pending_tx.confirmations(1).await?.unwrap();
