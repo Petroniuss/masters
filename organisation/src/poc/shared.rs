@@ -95,7 +95,11 @@ pub fn demo_graph() -> PermissionGraph {
 }
 
 pub fn demo_graph_cid() -> CID {
-    return "ipfs://cid-test-foo-bar".to_string();
+    return "ipfs://cid--1".to_string();
+}
+
+pub fn demo_graph_cid_2() -> CID {
+    return "ipfs://cid--2".to_string();
 }
 
 // todo: this should be a real pointer.

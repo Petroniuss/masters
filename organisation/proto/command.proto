@@ -99,7 +99,8 @@ message ProposeChangeRequest {
 }
 
 message ProposeChangeResponse {
-  string proposed_change_id = 1;
+  string proposed_cid = 1;
+  bool accepted = 2;
 }
 
 

@@ -3,7 +3,7 @@ use crate::errors::Result;
 use crate::ipfs::ipfs_client::CID;
 use crate::poc::shared;
 use crate::transport::ethereum::peer_set_smart_contract::{
-    PeerSetSmartContract, PeerSetSmartContractEvents,
+    PeerSetPermissionGraphUpdatedFilter, PeerSetSmartContract, PeerSetSmartContractEvents,
 };
 use ethers::abi::{Token, Tokenizable};
 use ethers::contract::stream::EventStream;
@@ -13,6 +13,7 @@ use ethers::middleware::{NonceManagerMiddleware, SignerMiddleware};
 use ethers::prelude::{FilterWatcher, Log};
 use ethers::providers::{Http, Provider, StreamExt, SubscriptionStream};
 use ethers::types::Address;
+use ethers_providers::{JsonRpcClient, PendingTransaction};
 use ethers_signers::{LocalWallet, Signer};
 use futures::stream::FuturesUnordered;
 use futures::TryStreamExt;
@@ -26,11 +27,11 @@ use tokio::sync::mpsc::Sender;
 /// EthereumFacade communicates asynchronously with Protocol through sender.
 /// It notifies about Protocol about events from blockchain.
 pub trait EthereumFacade: Send {
-    /// todo: not sure about this context thing.
-    /// it should rather be part of protocol.rs, simply store it in PeerSet struct.
     fn async_create_peerset(&self, peers: Vec<Peer>, permission_graph_cid: CID);
 
     fn async_propose_change(&self, peerset_address: String, permission_graph_cid: CID);
+
+    fn async_approve_change(&self, peerset_address: String, permission_graph_cid: CID);
 
     fn subscribe_to_peerset_events(&self, peerset_address: String);
 }
@@ -51,7 +52,7 @@ impl EthereumFacadeImpl {
     }
 }
 
-trait AddressToString {
+pub trait AddressToString {
     fn to_full_string(&self) -> String;
 }
 
@@ -124,7 +125,7 @@ mod tests {
         // fails :/
         let address = x.address().to_full_string();
         eth_client
-            .async_propose_change(address.parse().unwrap(), "cid-1".to_string())
+            .propose_change(address.parse().unwrap(), "cid-1".to_string())
             .await;
     }
 }
@@ -155,9 +156,15 @@ impl EthereumFacade for EthereumFacadeImpl {
         let address = peerset_address.parse::<Address>().unwrap();
         let client = self.ethereum_client.clone();
         spawn(async move {
-            client
-                .async_propose_change(address, permission_graph_cid)
-                .await;
+            client.propose_change(address, permission_graph_cid).await;
+        });
+    }
+
+    fn async_approve_change(&self, peerset_address: String, permission_graph_cid: CID) {
+        let address = peerset_address.parse::<Address>().unwrap();
+        let client = self.ethereum_client.clone();
+        spawn(async move {
+            client.approve_change(address, permission_graph_cid).await;
         });
     }
 
@@ -203,7 +210,7 @@ impl EthereumClient {
         Ok(peer_set_smart_contract)
     }
 
-    async fn async_propose_change(&self, peerset_address: Address, cid: CID) {
+    async fn propose_change(&self, peerset_address: Address, cid: CID) {
         let middleware = self.ethereum_middleware.clone();
         let sc = PeerSetSmartContract::new(peerset_address, middleware);
 
@@ -214,22 +221,26 @@ impl EthereumClient {
         );
         let pending_tx_result = call.send().await;
 
-        let pending_tx = match pending_tx_result {
-            Ok(e) => e,
-            Err(e) => match e {
-                ContractError::Revert(_) => {
-                    let x = e.decode_revert::<String>();
-                    panic!("Transaction reverted: {:?}", x);
-                }
-                _ => {
-                    panic!("Infra problem: {:?}", e);
-                }
-            },
-        };
+        let pending_tx = decode_err(pending_tx_result);
 
         let _completed_tx = pending_tx.confirmations(1).await.unwrap().unwrap();
         info!(
             "Proposed a change with cid {} to peerset {}",
+            cid, peerset_address
+        );
+    }
+
+    async fn approve_change(&self, peerset_address: Address, cid: CID) {
+        let middleware = self.ethereum_middleware.clone();
+        let sc = PeerSetSmartContract::new(peerset_address.clone(), middleware);
+
+        let call = sc.submit_peer_vote(cid.clone(), true);
+        let pending_tx = call.send().await;
+        let pending_tx = decode_err(pending_tx);
+
+        let _completed_tx = pending_tx.confirmations(1).await.unwrap().unwrap();
+        info!(
+            "Approved a change with cid {} to peerset {}",
             cid, peerset_address
         );
     }
@@ -243,7 +254,7 @@ impl EthereumClient {
         while let Some(result) = stream.next().await {
             match result {
                 Ok(v) => {
-                    info!("Received event: {}", v);
+                    info!("PeerSetSmartContractEvent: {:?}", v);
                     match v {
                         PeerSetSmartContractEvents::PeerSetPermissionGraphChangeRequestFilter(
                             e,
@@ -258,18 +269,31 @@ impl EthereumClient {
                                     },
                                     new_permission_graph_cid: e
                                         .proposed_peer_set_permission_graph_ipfs_pointer,
-                                    // todo: update this guy!
-                                    change_id: "foo-change-id".to_string(),
                                 })
                                 .await
                                 .unwrap();
                         }
-                        PeerSetSmartContractEvents::PeerSetPermissionGraphChangeRejectedFilter(
-                            e,
-                        ) => {}
-                        PeerSetSmartContractEvents::PeerSetPermissionGraphUpdatedFilter(e) => {}
+                        PeerSetSmartContractEvents::PeerSetPermissionGraphUpdatedFilter(
+                            PeerSetPermissionGraphUpdatedFilter {
+                                peer_requesting_change,
+                                updated_peer_set_permission_graph_ipfs_pointer,
+                            },
+                        ) => {
+                            sender
+                                .send(BlockchainEvent::ChangeAccepted {
+                                    peerset_address: peerset_address.to_full_string(),
+                                    new_permission_graph_cid:
+                                        updated_peer_set_permission_graph_ipfs_pointer,
+                                })
+                                .await
+                                .unwrap();
+                        }
+
                         PeerSetSmartContractEvents::PeerSetPermissionGraphVoteReceivedFilter(_) => {
                         }
+                        PeerSetSmartContractEvents::PeerSetPermissionGraphChangeRejectedFilter(
+                            _e,
+                        ) => {}
                     }
                 }
                 Err(err) => {
@@ -280,6 +304,23 @@ impl EthereumClient {
                 }
             }
         }
+    }
+}
+
+fn decode_err(
+    pending_tx: std::result::Result<PendingTransaction<Http>, ContractError<EthereumMiddleware>>,
+) -> PendingTransaction<Http> {
+    match pending_tx {
+        Ok(e) => e,
+        Err(e) => match e {
+            ContractError::Revert(_) => {
+                let x = e.decode_revert::<String>();
+                panic!("Transaction reverted: {:?}", x);
+            }
+            _ => {
+                panic!("Infra problem: {:?}", e);
+            }
+        },
     }
 }
 

@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use crate::core::ethereum::{EthereumFacade, EthereumFacadeImpl};
+use crate::core::ethereum::{AddressToString, EthereumFacade, EthereumFacadeImpl};
 use crate::core::ipfs::{CheatingIPFSFacade, IPFSFacade};
 use color_eyre::eyre::{anyhow, eyre};
-use ethers_signers::LocalWallet;
+use color_eyre::owo_colors::OwoColorize;
+use ethers_signers::{LocalWallet, Signer};
 use itertools::Itertools;
 use log::info;
 use tokio::select;
@@ -33,10 +34,13 @@ impl ProtocolFacade {
         let (query_sender, query_receiver) = tokio::sync::mpsc::channel(100);
         let (command_sender, command_receiver) = tokio::sync::mpsc::channel(100);
 
+        let peer = Peer::new(wallet.address().to_full_string());
+
         let ipfs_facade = CheatingIPFSFacade::new(ipfs_sender);
         let ethereum_facade = EthereumFacadeImpl::new(wallet, blockchain_sender.clone());
 
         let _handle = ProtocolService::start_event_loop(
+            peer,
             blockchain_receiver,
             ipfs_receiver,
             query_receiver,
@@ -84,18 +88,12 @@ impl ProtocolFacade {
         receiver.await
     }
 
-    pub async fn peerset_created(&self, peerset_created: PeersetCreatedRequest) {
+    pub async fn peerset_created(&self, request: PeersetCreatedRequest) {
         self.blockchain_sender
             .try_send(BlockchainEvent::NewPeersetCreated {
-                peers: peerset_created
-                    .peers
-                    .into_iter()
-                    .map(|e| Peer {
-                        blockchain_address: e,
-                    })
-                    .collect_vec(),
-                permission_graph_cid: peerset_created.permission_graph_cid,
-                peerset_address: peerset_created.deployed_peerset_smart_contract_address,
+                peers: Peer::from_vec(&request.peers),
+                permission_graph_cid: request.permission_graph_cid,
+                peerset_address: request.deployed_peerset_smart_contract_address,
             })
             .expect("should succeed");
     }
@@ -155,10 +153,12 @@ pub enum BlockchainEvent {
         peerset_blockchain_address: String,
         proposed_by: Peer,
         new_permission_graph_cid: String,
-        change_id: String,
     },
-    // ChangeAccepted(),
-    // ChangeDeclined(),
+    ChangeAccepted {
+        peerset_address: String,
+        new_permission_graph_cid: String,
+    },
+    // todo: ChangeRejected
 }
 
 #[derive(Debug)]
@@ -197,6 +197,19 @@ pub struct Peer {
     pub blockchain_address: String,
 }
 
+impl Peer {
+    pub fn new(blockchain_address: String) -> Self {
+        Peer { blockchain_address }
+    }
+
+    pub fn from_vec(blockchain_addresses: &Vec<String>) -> Vec<Peer> {
+        blockchain_addresses
+            .into_iter()
+            .map(|e| Peer::new(e.clone()))
+            .collect_vec()
+    }
+}
+
 #[derive(Debug)]
 enum PeerSetTransactionState {
     None,
@@ -205,8 +218,6 @@ enum PeerSetTransactionState {
         proposed_by: Peer,
         permission_graph: Option<PermissionGraph>,
         permission_graph_cid: CID,
-        change_id: String,
-        response_channel: Option<tokio::sync::oneshot::Sender<ProposeChangeResponse>>,
     },
 }
 
@@ -227,13 +238,16 @@ struct PeerSet {
 struct ProtocolService {
     ipfs_facade: Box<dyn IPFSFacade>,
     ethereum_facade: Box<dyn EthereumFacade>,
+    // todo: need to split stuff that we access through shared reference and stuff that we access through mutable reference
+    // otherwise borrow checker will break hell loose on us
     peersets: HashMap<String, PeerSet>,
-    // todo: implement index!
     pending_command: Option<CommandEvent>,
+    peer: Peer,
 }
 
 impl ProtocolService {
     fn start_event_loop(
+        peer: Peer,
         mut blockchain_events_channel: tokio::sync::mpsc::Receiver<BlockchainEvent>,
         mut ipfs_events_channel: tokio::sync::mpsc::Receiver<IPFSEvent>,
         mut query_events_channel: tokio::sync::mpsc::Receiver<QueryEvent>,
@@ -242,6 +256,7 @@ impl ProtocolService {
         ethereum_facade: Box<dyn EthereumFacade>,
     ) -> JoinHandle<()> {
         let mut protocol = ProtocolService {
+            peer,
             ipfs_facade,
             ethereum_facade,
             peersets: HashMap::new(),
@@ -413,21 +428,18 @@ impl ProtocolService {
                 peerset_blockchain_address,
                 proposed_by,
                 new_permission_graph_cid,
-                change_id,
             } => {
                 let peerset = self.peerset_by_address(peerset_blockchain_address.as_str())?;
-
                 match &peerset.transaction_state {
                     PeerSetTransactionState::None => {
                         peerset.transaction_state = PeerSetTransactionState::ChangeProposed {
-                            votes: 0,
+                            votes: 1,
                             proposed_by,
                             permission_graph: None,
                             permission_graph_cid: new_permission_graph_cid.clone(),
-                            change_id,
-                            response_channel: None,
                         }
                     }
+
                     _ => {
                         return Err(eyre!(
                             "PeerSetTransactionState should be None when a new change is proposed."
@@ -435,11 +447,41 @@ impl ProtocolService {
                     }
                 }
 
-                // download permission graph
                 self.ipfs_facade.async_load_permission_graph(
                     new_permission_graph_cid,
                     peerset_blockchain_address,
                 );
+            }
+            BlockchainEvent::ChangeAccepted {
+                ref peerset_address,
+                ref new_permission_graph_cid,
+            } => {
+                let peerset = self.peerset_by_address(peerset_address)?;
+                peerset.permission_graph_cid = new_permission_graph_cid.clone();
+                if let Some(permission_graph) = peerset.permission_graph.take() {
+                    peerset.permission_graph = Some(permission_graph)
+                } else {
+                    peerset.permission_graph = None;
+                }
+                peerset.transaction_state = PeerSetTransactionState::None;
+
+                if let Some(command) = self.pending_command.take() {
+                    match command {
+                        CommandEvent::ProposeChange {
+                            request,
+                            response_channel,
+                        } => response_channel
+                            .send(ProposeChangeResponse {
+                                proposed_cid: new_permission_graph_cid.clone(),
+                                accepted: true,
+                            })
+                            .unwrap(),
+
+                        CommandEvent::CreatePeersetRequest { .. } => {
+                            panic!()
+                        }
+                    }
+                }
             }
         }
 
@@ -453,23 +495,30 @@ impl ProtocolService {
                 permission_graph: loaded_permission_graph,
                 peerset_address,
             } => {
+                let peer_addr = self.peer.blockchain_address.clone();
                 let peerset = self.peerset_by_address(peerset_address.as_str())?;
+                let peerset_address = peerset.blockchain_address.clone();
 
                 if cid_loaded == peerset.permission_graph_cid {
                     peerset.permission_graph = Some(loaded_permission_graph);
-                    // todo: update index here
                     return Ok(());
                 }
 
                 match &mut peerset.transaction_state {
                     PeerSetTransactionState::ChangeProposed {
-                        votes: _, proposed_by: _, permission_graph, permission_graph_cid: new_permission_graph_cid, change_id: _, response_channel: _
+                        votes: _, proposed_by, permission_graph, permission_graph_cid: new_permission_graph_cid,
                     } => {
+                        info!("Reached {} {}", new_permission_graph_cid, cid_loaded);
+                        info!("Peer_addr {}, proposed_by {}", peer_addr, proposed_by.blockchain_address);
                         if new_permission_graph_cid == &cid_loaded {
-                            // todo: at this point we can do some processing and vote whether change should be accepted or rejected.
                             *permission_graph = Some(loaded_permission_graph);
+
+                            if peer_addr != proposed_by.blockchain_address {
+                                self.ethereum_facade
+                                    .async_approve_change(peerset_address.clone(), cid_loaded);
+                            }
                         } else {
-                            return Err(eyre!("Unknown CID {} loaded for peerset {}, peerset: {:?}", cid_loaded, peerset_address, peerset));
+                            return Err(eyre!("Unknown CID {} loaded for peerset {}", cid_loaded, peerset_address));
                         }
                     }
                     _ => {
@@ -479,35 +528,21 @@ impl ProtocolService {
             }
             IPFSEvent::PermissionGraphSaved {
                 cid,
+                // todo: why is this not used?
                 peerset_address,
             } => {
                 if let Some(command) = self.pending_command.take() {
                     match command {
                         CommandEvent::CreatePeersetRequest { ref request, .. } => {
-                            let peers = request
-                                .peers
-                                .iter()
-                                .map(|e| Peer {
-                                    blockchain_address: e.to_string(),
-                                })
-                                .collect();
-
+                            let peers = Peer::from_vec(&request.peers);
                             self.ethereum_facade.async_create_peerset(peers, cid);
                             self.pending_command = Some(command);
                         }
-                        CommandEvent::ProposeChange {
-                            ref request,
-                            response_channel,
-                        } => {
+                        CommandEvent::ProposeChange { ref request, .. } => {
                             self.ethereum_facade
                                 .async_propose_change(request.peerset_address.clone(), cid);
 
-                            // todo: we should return from synchronous call after voting has been completed.
-                            response_channel
-                                .send(ProposeChangeResponse {
-                                    proposed_change_id: "c-d".to_string(),
-                                })
-                                .unwrap();
+                            self.pending_command = Some(command);
                         }
                     }
                 }
@@ -561,7 +596,10 @@ mod tests {
             sender: blockchain_sender.clone(),
         };
 
+        let peer = Peer::new(PEER_ONE_ADDR.to_string());
+
         let _handle = ProtocolService::start_event_loop(
+            peer,
             blockchain_receiver,
             ipfs_receiver,
             query_receiver,
@@ -622,6 +660,8 @@ mod tests {
         }
 
         fn async_propose_change(&self, _peerset_address: String, _permission_graph_cid: CID) {}
+
+        fn async_approve_change(&self, peerset_address: String, permission_graph_cid: CID) {}
 
         fn subscribe_to_peerset_events(&self, _peerset_address: String) {}
     }

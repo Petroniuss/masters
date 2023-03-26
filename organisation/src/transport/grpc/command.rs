@@ -58,7 +58,9 @@ pub struct ProposeChangeRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ProposeChangeResponse {
     #[prost(string, tag = "1")]
-    pub proposed_change_id: ::prost::alloc::string::String,
+    pub proposed_cid: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub accepted: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

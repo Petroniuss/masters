@@ -44,14 +44,20 @@ impl IPFSFacade for CheatingIPFSFacade {
 
     fn async_save_permission_graph(
         &self,
-        _permission_graph: PermissionGraph,
+        permission_graph: PermissionGraph,
         peerset_address: Option<String>,
     ) {
         let sender = self.ipfs_sender.clone();
         tokio::spawn(async move {
+            let cid = if !permission_graph.edges.contains_key("ur_2") {
+                shared::demo_graph_cid()
+            } else {
+                shared::demo_graph_cid_2()
+            };
+
             sender
                 .send(IPFSEvent::PermissionGraphSaved {
-                    cid: shared::demo_graph_cid(),
+                    cid,
                     peerset_address,
                 })
                 .await
