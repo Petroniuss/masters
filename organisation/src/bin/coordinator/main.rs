@@ -124,18 +124,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         tmp
     };
 
-    info!("Proposing a change by peer 1..");
-    let response = client_1
+    info!("Proposing a change by peer 2..");
+    let peer_2_voting_response = client_2
         .propose_change(tonic::Request::new(command::ProposeChangeRequest {
             peerset_address: peerset_response
                 .deployed_peerset_smart_contract_address
                 .clone(),
             new_permission_graph: Some(permission_graph_p1_v2),
         }))
-        .await?;
+        .await?
+        .into_inner();
     info!(
-        "Reached consensus on proposed change = response{:?}",
-        response
+        "Peer 2 reports that voting has been completed = response{:?}",
+        peer_2_voting_response
+    );
+
+    info!("Querying peer1 to get their perceived version of the graph..");
+    let response = client_1
+        .query_peersets_cid(QueryPeersetsCiDsRequest {})
+        .await?
+        .into_inner();
+
+    info!("Peer1 response: {:?}", response);
+    assert_eq!(response.peerset_graphs.len(), 1);
+    assert_eq!(
+        response.peerset_graphs[0],
+        PeersetGraph {
+            peerset_address: peerset_response
+                .deployed_peerset_smart_contract_address
+                .clone(),
+            permission_graph_cid: peer_2_voting_response.proposed_cid.clone(),
+        }
     );
 
     Ok(())
