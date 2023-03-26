@@ -11,7 +11,7 @@ pub use using_peer_set_events::*;
 )]
 pub mod using_peer_set_events {
     #[rustfmt::skip]
-    const __ABI: &str = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"peerRequestingChange\",\"type\":\"address\",\"components\":[],\"indexed\":false},{\"internalType\":\"address\",\"name\":\"peerValidatingChange\",\"type\":\"address\",\"components\":[],\"indexed\":false},{\"internalType\":\"string\",\"name\":\"rejectedPeerSetPermissionGraphIPFSPointer\",\"type\":\"string\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"PeerSetPermissionGraphChangeRejected\",\"outputs\":[],\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"peerRequestingChange\",\"type\":\"address\",\"components\":[],\"indexed\":false},{\"internalType\":\"string\",\"name\":\"proposedPeerSetPermissionGraphIPFSPointer\",\"type\":\"string\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"PeerSetPermissionGraphChangeRequest\",\"outputs\":[],\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"peerRequestingChange\",\"type\":\"address\",\"components\":[],\"indexed\":false},{\"internalType\":\"address\",\"name\":\"peerValidatingChange\",\"type\":\"address\",\"components\":[],\"indexed\":false},{\"internalType\":\"string\",\"name\":\"updatedPeerSetPermissionGraphIPFSPointer\",\"type\":\"string\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"PeerSetPermissionGraphUpdated\",\"outputs\":[],\"anonymous\":false}]";
+    const __ABI: &str = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"peerRequestingChange\",\"type\":\"address\",\"components\":[],\"indexed\":false},{\"internalType\":\"string\",\"name\":\"rejectedPeerSetPermissionGraphIPFSPointer\",\"type\":\"string\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"PeerSetPermissionGraphChangeRejected\",\"outputs\":[],\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"peerRequestingChange\",\"type\":\"address\",\"components\":[],\"indexed\":false},{\"internalType\":\"string\",\"name\":\"proposedPeerSetPermissionGraphIPFSPointer\",\"type\":\"string\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"PeerSetPermissionGraphChangeRequest\",\"outputs\":[],\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"peerRequestingChange\",\"type\":\"address\",\"components\":[],\"indexed\":false},{\"internalType\":\"string\",\"name\":\"updatedPeerSetPermissionGraphIPFSPointer\",\"type\":\"string\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"PeerSetPermissionGraphUpdated\",\"outputs\":[],\"anonymous\":false},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"cid\",\"type\":\"string\",\"components\":[],\"indexed\":false},{\"internalType\":\"bool\",\"name\":\"vote\",\"type\":\"bool\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"PeerSetPermissionGraphVoteReceived\",\"outputs\":[],\"anonymous\":false}]";
     ///The parsed JSON ABI of the contract.
     pub static USINGPEERSETEVENTS_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> =
         ::ethers::contract::Lazy::new(|| {
@@ -84,6 +84,16 @@ pub mod using_peer_set_events {
         > {
             self.0.event()
         }
+        ///Gets the contract's `PeerSetPermissionGraphVoteReceived` event
+        pub fn peer_set_permission_graph_vote_received_filter(
+            &self,
+        ) -> ::ethers::contract::builders::Event<
+            ::std::sync::Arc<M>,
+            M,
+            PeerSetPermissionGraphVoteReceivedFilter,
+        > {
+            self.0.event()
+        }
         /// Returns an `Event` builder for all the events of this contract.
         pub fn events(
             &self,
@@ -112,11 +122,10 @@ pub mod using_peer_set_events {
     )]
     #[ethevent(
         name = "PeerSetPermissionGraphChangeRejected",
-        abi = "PeerSetPermissionGraphChangeRejected(address,address,string)"
+        abi = "PeerSetPermissionGraphChangeRejected(address,string)"
     )]
     pub struct PeerSetPermissionGraphChangeRejectedFilter {
         pub peer_requesting_change: ::ethers::core::types::Address,
-        pub peer_validating_change: ::ethers::core::types::Address,
         pub rejected_peer_set_permission_graph_ipfs_pointer: ::std::string::String,
     }
     #[derive(
@@ -149,12 +158,29 @@ pub mod using_peer_set_events {
     )]
     #[ethevent(
         name = "PeerSetPermissionGraphUpdated",
-        abi = "PeerSetPermissionGraphUpdated(address,address,string)"
+        abi = "PeerSetPermissionGraphUpdated(address,string)"
     )]
     pub struct PeerSetPermissionGraphUpdatedFilter {
         pub peer_requesting_change: ::ethers::core::types::Address,
-        pub peer_validating_change: ::ethers::core::types::Address,
         pub updated_peer_set_permission_graph_ipfs_pointer: ::std::string::String,
+    }
+    #[derive(
+        Clone,
+        ::ethers::contract::EthEvent,
+        ::ethers::contract::EthDisplay,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+    )]
+    #[ethevent(
+        name = "PeerSetPermissionGraphVoteReceived",
+        abi = "PeerSetPermissionGraphVoteReceived(string,bool)"
+    )]
+    pub struct PeerSetPermissionGraphVoteReceivedFilter {
+        pub cid: ::std::string::String,
+        pub vote: bool,
     }
     ///Container type for all of the contract's events
     #[derive(Clone, ::ethers::contract::EthAbiType, Debug, PartialEq, Eq, Hash)]
@@ -162,6 +188,7 @@ pub mod using_peer_set_events {
         PeerSetPermissionGraphChangeRejectedFilter(PeerSetPermissionGraphChangeRejectedFilter),
         PeerSetPermissionGraphChangeRequestFilter(PeerSetPermissionGraphChangeRequestFilter),
         PeerSetPermissionGraphUpdatedFilter(PeerSetPermissionGraphUpdatedFilter),
+        PeerSetPermissionGraphVoteReceivedFilter(PeerSetPermissionGraphVoteReceivedFilter),
     }
     impl ::ethers::contract::EthLogDecode for UsingPeerSetEventsEvents {
         fn decode_log(
@@ -180,6 +207,11 @@ pub mod using_peer_set_events {
             if let Ok(decoded) = PeerSetPermissionGraphUpdatedFilter::decode_log(log) {
                 return Ok(UsingPeerSetEventsEvents::PeerSetPermissionGraphUpdatedFilter(decoded));
             }
+            if let Ok(decoded) = PeerSetPermissionGraphVoteReceivedFilter::decode_log(log) {
+                return Ok(
+                    UsingPeerSetEventsEvents::PeerSetPermissionGraphVoteReceivedFilter(decoded),
+                );
+            }
             Err(::ethers::core::abi::Error::InvalidData)
         }
     }
@@ -193,6 +225,9 @@ pub mod using_peer_set_events {
                     ::core::fmt::Display::fmt(element, f)
                 }
                 Self::PeerSetPermissionGraphUpdatedFilter(element) => {
+                    ::core::fmt::Display::fmt(element, f)
+                }
+                Self::PeerSetPermissionGraphVoteReceivedFilter(element) => {
                     ::core::fmt::Display::fmt(element, f)
                 }
             }
@@ -213,6 +248,11 @@ pub mod using_peer_set_events {
     impl ::core::convert::From<PeerSetPermissionGraphUpdatedFilter> for UsingPeerSetEventsEvents {
         fn from(value: PeerSetPermissionGraphUpdatedFilter) -> Self {
             Self::PeerSetPermissionGraphUpdatedFilter(value)
+        }
+    }
+    impl ::core::convert::From<PeerSetPermissionGraphVoteReceivedFilter> for UsingPeerSetEventsEvents {
+        fn from(value: PeerSetPermissionGraphVoteReceivedFilter) -> Self {
+            Self::PeerSetPermissionGraphVoteReceivedFilter(value)
         }
     }
 }

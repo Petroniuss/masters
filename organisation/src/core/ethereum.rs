@@ -100,8 +100,6 @@ mod tests {
                 .with_chain_id(CHAIN_ID)
         }
 
-        // let wallet =
-        //     local_wallet("d2ef8f291387de16e7ae1875f80d3d31a4b7e6687294862ff9793d584f933a5e");
         let wallet_1 =
             local_wallet("2834824554106f1a77dd199dfc5456cb40091f560b3b3d2d3417bb04d04bd969");
 
@@ -200,11 +198,9 @@ impl EthereumClient {
             .map(|peer| peer.blockchain_address.parse::<Address>())
             .map(|e: _| e.expect("should be valid address"))
             .collect();
-        let oracle_address = shared::ORACLE_CONTRACT_ADDRESS.parse::<Address>().unwrap();
 
         let constructor_args = vec![
             peer_addresses.into_token(),
-            oracle_address.into_token(),
             permission_graph_cid.into_token(),
         ];
 
@@ -283,6 +279,8 @@ impl EthereumClient {
                             e,
                         ) => {}
                         PeerSetSmartContractEvents::PeerSetPermissionGraphUpdatedFilter(e) => {}
+                        PeerSetSmartContractEvents::PeerSetPermissionGraphVoteReceivedFilter(_) => {
+                        }
                     }
                 }
                 Err(err) => {

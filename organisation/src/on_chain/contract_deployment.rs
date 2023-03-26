@@ -45,11 +45,11 @@ impl PeerSetSmartContractDeployment for EnrichedEthereumClient {
         info!("Beginning deployment of the peer set smart contract...");
         let peer_addresses = peer_set.get_peer_ethereum_addresses();
 
-        let oracle_address = self.permission_verifier_oracle.address();
+        // let oracle_address = self.permission_verifier_oracle.address();
 
         let constructor_args = vec![
             peer_addresses.into_token(),
-            oracle_address.into_token(),
+            // oracle_address.into_token(),
             initial_graph_ipfs_pointer.into_token(),
         ];
 
