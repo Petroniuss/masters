@@ -28,12 +28,7 @@ use tokio::sync::mpsc::Sender;
 pub trait EthereumFacade: Send {
     /// todo: not sure about this context thing.
     /// it should rather be part of protocol.rs, simply store it in PeerSet struct.
-    fn async_create_peerset(
-        &self,
-        peers: Vec<Peer>,
-        permission_graph_cid: CID,
-        context: CommandEvent,
-    );
+    fn async_create_peerset(&self, peers: Vec<Peer>, permission_graph_cid: CID);
 
     fn async_propose_change(&self, peerset_address: String, permission_graph_cid: CID);
 
@@ -135,12 +130,7 @@ mod tests {
 }
 
 impl EthereumFacade for EthereumFacadeImpl {
-    fn async_create_peerset(
-        &self,
-        peers: Vec<Peer>,
-        permission_graph_cid: CID,
-        context: CommandEvent,
-    ) {
+    fn async_create_peerset(&self, peers: Vec<Peer>, permission_graph_cid: CID) {
         let sender = self.sender.clone();
         let client = self.ethereum_client.clone();
         spawn(async move {
@@ -155,7 +145,6 @@ impl EthereumFacade for EthereumFacadeImpl {
                     peers,
                     permission_graph_cid,
                     peerset_address: smart_contract.address().to_full_string(),
-                    context: Some(context),
                 })
                 .await
                 .expect("should succeed");

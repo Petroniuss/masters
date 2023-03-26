@@ -10,7 +10,11 @@ pub trait IPFSFacade: Send {
     fn async_load_permission_graph(&self, cid: CID, peerset_address: String);
 
     /// Context is passed during asynchronous callback
-    fn async_save_permission_graph(&self, permission_graph: PermissionGraph, context: CommandEvent);
+    fn async_save_permission_graph(
+        &self,
+        permission_graph: PermissionGraph,
+        peerset_address: Option<String>,
+    );
 }
 
 pub struct CheatingIPFSFacade {
@@ -41,14 +45,14 @@ impl IPFSFacade for CheatingIPFSFacade {
     fn async_save_permission_graph(
         &self,
         _permission_graph: PermissionGraph,
-        context: CommandEvent,
+        peerset_address: Option<String>,
     ) {
         let sender = self.ipfs_sender.clone();
         tokio::spawn(async move {
             sender
                 .send(IPFSEvent::PermissionGraphSaved {
                     cid: shared::demo_graph_cid(),
-                    context,
+                    peerset_address,
                 })
                 .await
                 .unwrap();

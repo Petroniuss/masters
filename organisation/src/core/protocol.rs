@@ -2,8 +2,7 @@ use std::collections::HashMap;
 
 use crate::core::ethereum::{EthereumFacade, EthereumFacadeImpl};
 use crate::core::ipfs::{CheatingIPFSFacade, IPFSFacade};
-use crate::core::protocol::BlockchainEvent::NewPeersetCreated;
-use color_eyre::eyre::eyre;
+use color_eyre::eyre::{anyhow, eyre};
 use ethers_signers::LocalWallet;
 use itertools::Itertools;
 use log::info;
@@ -87,7 +86,7 @@ impl ProtocolFacade {
 
     pub async fn peerset_created(&self, peerset_created: PeersetCreatedRequest) {
         self.blockchain_sender
-            .try_send(NewPeersetCreated {
+            .try_send(BlockchainEvent::NewPeersetCreated {
                 peers: peerset_created
                     .peers
                     .into_iter()
@@ -97,7 +96,6 @@ impl ProtocolFacade {
                     .collect_vec(),
                 permission_graph_cid: peerset_created.permission_graph_cid,
                 peerset_address: peerset_created.deployed_peerset_smart_contract_address,
-                context: None,
             })
             .expect("should succeed");
     }
@@ -142,7 +140,7 @@ pub enum IPFSEvent {
 
     PermissionGraphSaved {
         cid: CID,
-        context: CommandEvent,
+        peerset_address: Option<String>, // if None, then it's a new peerset
     },
 }
 
@@ -152,7 +150,6 @@ pub enum BlockchainEvent {
         peers: Vec<Peer>,
         permission_graph_cid: String,
         peerset_address: String,
-        context: Option<CommandEvent>,
     },
     NewChangeProposed {
         peerset_blockchain_address: String,
@@ -222,7 +219,6 @@ struct PeerSet {
     permission_graph: Option<PermissionGraph>, // todo: we probably shouldn't use type that's used in transport protocol here!
 
     transaction_state: PeerSetTransactionState,
-    // todo: here we also need to store local state (for example command: propose change)
 }
 
 /// A single thread that loops through possible events and processes them as they come in.
@@ -233,6 +229,7 @@ struct ProtocolService {
     ethereum_facade: Box<dyn EthereumFacade>,
     peersets: HashMap<String, PeerSet>,
     // todo: implement index!
+    pending_command: Option<CommandEvent>,
 }
 
 impl ProtocolService {
@@ -248,6 +245,7 @@ impl ProtocolService {
             ipfs_facade,
             ethereum_facade,
             peersets: HashMap::new(),
+            pending_command: None,
         };
 
         let handle = tokio::spawn(async move {
@@ -281,6 +279,11 @@ impl ProtocolService {
     }
 
     fn handle_command_event(&mut self, command_event: CommandEvent) -> Result<()> {
+        if self.pending_command.is_some() {
+            // todo return error back to the caller through channel is command_event
+            return Err(eyre!("Another command is already pending"));
+        }
+
         match &command_event {
             CommandEvent::CreatePeersetRequest {
                 request:
@@ -290,23 +293,22 @@ impl ProtocolService {
                     },
                 ..
             } => {
-                self.ipfs_facade.async_save_permission_graph(
-                    initial_permission_graph.clone().unwrap(),
-                    command_event,
-                );
+                self.ipfs_facade
+                    .async_save_permission_graph(initial_permission_graph.clone().unwrap(), None);
             }
             CommandEvent::ProposeChange {
                 request,
                 response_channel: _,
             } => {
-                // todo: refactor to save context in the event loop
+                // todo check if there's already a pending change
                 self.ipfs_facade.async_save_permission_graph(
                     request.new_permission_graph.as_ref().unwrap().clone(),
-                    command_event,
+                    Some(request.peerset_address.clone()),
                 );
             }
         }
 
+        self.pending_command = Some(command_event);
         Ok(())
     }
 
@@ -367,7 +369,6 @@ impl ProtocolService {
                 peers,
                 permission_graph_cid,
                 peerset_address,
-                context,
             } => {
                 let address = peerset_address;
                 let cid = permission_graph_cid;
@@ -389,7 +390,7 @@ impl ProtocolService {
                 self.ethereum_facade
                     .subscribe_to_peerset_events(address.clone());
 
-                if let Some(context) = context {
+                if let Some(context) = self.pending_command.take() {
                     match context {
                         CommandEvent::CreatePeersetRequest {
                             response_channel, ..
@@ -476,34 +477,41 @@ impl ProtocolService {
                     }
                 }
             }
-            IPFSEvent::PermissionGraphSaved { cid, context } => match context {
-                CommandEvent::CreatePeersetRequest { ref request, .. } => {
-                    let peers = request
-                        .peers
-                        .iter()
-                        .map(|e| Peer {
-                            blockchain_address: e.to_string(),
-                        })
-                        .collect();
+            IPFSEvent::PermissionGraphSaved {
+                cid,
+                peerset_address,
+            } => {
+                if let Some(command) = self.pending_command.take() {
+                    match command {
+                        CommandEvent::CreatePeersetRequest { ref request, .. } => {
+                            let peers = request
+                                .peers
+                                .iter()
+                                .map(|e| Peer {
+                                    blockchain_address: e.to_string(),
+                                })
+                                .collect();
 
-                    self.ethereum_facade
-                        .async_create_peerset(peers, cid, context)
-                }
-                CommandEvent::ProposeChange {
-                    request,
-                    response_channel,
-                } => {
-                    self.ethereum_facade
-                        .async_propose_change(request.peerset_address.clone(), cid);
+                            self.ethereum_facade.async_create_peerset(peers, cid);
+                            self.pending_command = Some(command);
+                        }
+                        CommandEvent::ProposeChange {
+                            ref request,
+                            response_channel,
+                        } => {
+                            self.ethereum_facade
+                                .async_propose_change(request.peerset_address.clone(), cid);
 
-                    // todo: we should return from synchronous call after voting has been completed.
-                    response_channel
-                        .send(ProposeChangeResponse {
-                            proposed_change_id: "c-d".to_string(),
-                        })
-                        .unwrap();
+                            // todo: we should return from synchronous call after voting has been completed.
+                            response_channel
+                                .send(ProposeChangeResponse {
+                                    proposed_change_id: "c-d".to_string(),
+                                })
+                                .unwrap();
+                        }
+                    }
                 }
-            },
+            }
         }
 
         Ok(())
@@ -603,18 +611,12 @@ mod tests {
     }
 
     impl EthereumFacade for EthereumFacadeMock {
-        fn async_create_peerset(
-            &self,
-            peers: Vec<Peer>,
-            permission_graph_cid: CID,
-            context: CommandEvent,
-        ) {
+        fn async_create_peerset(&self, peers: Vec<Peer>, permission_graph_cid: CID) {
             self.sender
                 .try_send(BlockchainEvent::NewPeersetCreated {
                     peers,
                     permission_graph_cid,
                     peerset_address: PEERSET_ADDR.to_string(),
-                    context: Some(context),
                 })
                 .expect("should succeed");
         }
@@ -635,12 +637,16 @@ mod tests {
                 .expect("should succeed");
         }
 
-        fn async_save_permission_graph(&self, _cid: PermissionGraph, context: CommandEvent) {
+        fn async_save_permission_graph(
+            &self,
+            _cid: PermissionGraph,
+            peerset_address: Option<String>,
+        ) {
             let sender = self.sender.clone();
             sender
                 .try_send(IPFSEvent::PermissionGraphSaved {
                     cid: "ipfs://test-cid-1".to_string(),
-                    context,
+                    peerset_address,
                 })
                 .expect("should succeed");
         }
