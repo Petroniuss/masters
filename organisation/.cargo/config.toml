@@ -1,2 +1,2 @@
 [alias]
-integration-tests = "test -- --ignored --test integration_test --nocapture"
+integration-tests = "test --test * -- --nocapture"

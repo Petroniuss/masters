@@ -62,3 +62,8 @@ tonic-build = { version = "0.8.3", optional = true }
 [features]
 default = []
 gen-proto = ["dep:tonic-build"]
+
+[[test]]
+path = "tests/ethereum_integration_tests.rs"
+name = "ethereum_integration_tests"
+test = false

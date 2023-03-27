@@ -1,9 +1,9 @@
-use ethers_signers::{LocalWallet, Signer};
 use log::info;
 use organisation::core::protocol::ProtocolFacade;
 use organisation::errors::Result;
-use organisation::poc::shared::{shared_init, CHAIN_ID};
+use organisation::shared::shared::shared_init;
 
+use organisation::core::ethereum::local_wallet;
 use organisation::transport::grpc::command::organisation_dev_server::{
     OrganisationDev, OrganisationDevServer,
 };
@@ -33,12 +33,10 @@ use tonic::{Request, Response, Status};
 async fn main() -> Result<()> {
     shared_init()?;
     let configuration = load_configuration();
-
     let addr = format!("[::1]:{}", configuration.port).parse()?;
     info!("Running on: {}", addr);
 
     let wallet = local_wallet(&configuration.wallet_pk);
-
     let protocol_facade = ProtocolFacade::new(wallet);
     let organisation_service = OrganisationDevService::new(protocol_facade);
 
@@ -158,11 +156,4 @@ fn load_configuration() -> Configuration {
             panic!("Unknown profile {}", profile);
         }
     }
-}
-
-fn local_wallet(wallet_address: &str) -> LocalWallet {
-    wallet_address
-        .parse::<LocalWallet>()
-        .expect("should be valid wallet")
-        .with_chain_id(CHAIN_ID)
 }

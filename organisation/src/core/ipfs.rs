@@ -1,6 +1,6 @@
-use crate::core::protocol::{CommandEvent, IPFSEvent};
+use crate::core::protocol::IPFSEvent;
 use crate::ipfs::ipfs_client::CID;
-use crate::poc::shared;
+use crate::shared::shared;
 use crate::transport::grpc::command::PermissionGraph;
 
 use tokio::sync::mpsc::Sender;

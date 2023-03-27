@@ -1,17 +1,13 @@
 use backoff::future::retry;
 use backoff::ExponentialBackoff;
-
 use log::info;
+use organisation::shared::shared;
 use organisation::transport::grpc::command;
-use tonic::transport::{Channel, Endpoint};
-
-use organisation::poc::shared;
-use organisation::poc::shared::shared_init;
-
 use organisation::transport::grpc::command::organisation_dev_client::OrganisationDevClient;
 use organisation::transport::grpc::command::{
     Edge, Edges, Node, NodeType, PeersetGraph, QueryPeersetsCiDsRequest,
 };
+use tonic::transport::{Channel, Endpoint};
 
 async fn connect(endpoint: &'static str) -> Channel {
     retry(ExponentialBackoff::default(), || async {
@@ -29,7 +25,7 @@ async fn connect(endpoint: &'static str) -> Channel {
 /// It sends commands via gRPC to nodes to verify their behaviour & state.
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    shared_init()?;
+    shared::shared_init()?;
     let channel = connect("http://[::1]:50051").await;
     let mut client_1 = OrganisationDevClient::new(channel);
 

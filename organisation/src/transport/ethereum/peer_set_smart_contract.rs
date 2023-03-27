@@ -9561,7 +9561,7 @@ pub mod peer_set_smart_contract {
         IsPeer(IsPeerCall),
         IsVotingRoundOpen(IsVotingRoundOpenCall),
         MatchesVotingRoundCID(MatchesVotingRoundCIDCall),
-        Peers(PeersCall),
+        Peer(PeersCall),
         PeersArray(PeersArrayCall),
         PeersCount(PeersCountCall),
         ProposePermissionGraphChange(ProposePermissionGraphChangeCall),
@@ -9596,7 +9596,7 @@ pub mod peer_set_smart_contract {
                 return Ok(Self::MatchesVotingRoundCID(decoded));
             }
             if let Ok(decoded) = <PeersCall as ::ethers::core::abi::AbiDecode>::decode(data) {
-                return Ok(Self::Peers(decoded));
+                return Ok(Self::Peer(decoded));
             }
             if let Ok(decoded) = <PeersArrayCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::PeersArray(decoded));
@@ -9632,7 +9632,7 @@ pub mod peer_set_smart_contract {
                 Self::MatchesVotingRoundCID(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
-                Self::Peers(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::Peer(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::PeersArray(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::PeersCount(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::ProposePermissionGraphChange(element) => {
@@ -9653,7 +9653,7 @@ pub mod peer_set_smart_contract {
                 Self::IsPeer(element) => ::core::fmt::Display::fmt(element, f),
                 Self::IsVotingRoundOpen(element) => ::core::fmt::Display::fmt(element, f),
                 Self::MatchesVotingRoundCID(element) => ::core::fmt::Display::fmt(element, f),
-                Self::Peers(element) => ::core::fmt::Display::fmt(element, f),
+                Self::Peer(element) => ::core::fmt::Display::fmt(element, f),
                 Self::PeersArray(element) => ::core::fmt::Display::fmt(element, f),
                 Self::PeersCount(element) => ::core::fmt::Display::fmt(element, f),
                 Self::ProposePermissionGraphChange(element) => {
@@ -9693,7 +9693,7 @@ pub mod peer_set_smart_contract {
     }
     impl ::core::convert::From<PeersCall> for PeerSetSmartContractCalls {
         fn from(value: PeersCall) -> Self {
-            Self::Peers(value)
+            Self::Peer(value)
         }
     }
     impl ::core::convert::From<PeersArrayCall> for PeerSetSmartContractCalls {

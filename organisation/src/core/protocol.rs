@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use crate::core::ethereum::{AddressToString, EthereumFacade, EthereumFacadeImpl};
 use crate::core::ipfs::{CheatingIPFSFacade, IPFSFacade};
-use color_eyre::eyre::{anyhow, eyre};
-use color_eyre::owo_colors::OwoColorize;
+use color_eyre::eyre::eyre;
+
+use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
 use itertools::Itertools;
 use log::info;
@@ -207,6 +208,10 @@ impl Peer {
             .into_iter()
             .map(|e| Peer::new(e.clone()))
             .collect_vec()
+    }
+
+    pub fn from_address(address: &Address) -> Peer {
+        Peer::new(address.to_full_string())
     }
 }
 
@@ -468,7 +473,7 @@ impl ProtocolService {
                 if let Some(command) = self.pending_command.take() {
                     match command {
                         CommandEvent::ProposeChange {
-                            request,
+                            request: _,
                             response_channel,
                         } => response_channel
                             .send(ProposeChangeResponse {
@@ -529,7 +534,7 @@ impl ProtocolService {
             IPFSEvent::PermissionGraphSaved {
                 cid,
                 // todo: why is this not used?
-                peerset_address,
+                peerset_address: _,
             } => {
                 if let Some(command) = self.pending_command.take() {
                     match command {
@@ -566,12 +571,12 @@ mod tests {
     use crate::core::ethereum::EthereumFacade;
     use crate::core::ipfs::IPFSFacade;
     use crate::core::protocol::{
-        BlockchainEvent, CommandEvent, IPFSEvent, Peer, ProtocolFacade, ProtocolService,
+        BlockchainEvent, IPFSEvent, Peer, ProtocolFacade, ProtocolService,
     };
     use crate::transport::grpc::command::{CreatePeersetRequest, PermissionGraph};
 
     use crate::ipfs::ipfs_client::CID;
-    use crate::poc::shared;
+    use crate::shared::shared;
 
     static PEER_ONE_ADDR: &'static str = "0xd13c4379bfc9a0ea5e147b2d37f65eb2400dfd7b";
     static PEER_TWO_ADDR: &'static str = "0xd248e4a8407ed7ff9bdbc396ba46723b8101c86e";
@@ -661,7 +666,7 @@ mod tests {
 
         fn async_propose_change(&self, _peerset_address: String, _permission_graph_cid: CID) {}
 
-        fn async_approve_change(&self, peerset_address: String, permission_graph_cid: CID) {}
+        fn async_approve_change(&self, _peerset_address: String, _permission_graph_cid: CID) {}
 
         fn subscribe_to_peerset_events(&self, _peerset_address: String) {}
     }
