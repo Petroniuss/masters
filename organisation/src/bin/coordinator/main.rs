@@ -141,6 +141,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?
         .into_inner();
 
+    // todo: this is a race condition
+    // eventually an assertion should pass with some timeout.
     info!("Peer1 response: {:?}", response);
     assert_eq!(response.peerset_graphs.len(), 1);
     assert_eq!(

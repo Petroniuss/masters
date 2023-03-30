@@ -1,6 +1,5 @@
 use crate::core::protocol::{BlockchainEvent, Peer};
 use crate::errors::Result;
-use crate::ipfs::ipfs_client::CID;
 use crate::transport::ethereum::peer_set_smart_contract::{
     PeerSetPermissionGraphUpdatedFilter, PeerSetSmartContract, PeerSetSmartContractEvents,
 };
@@ -16,6 +15,7 @@ use log::{info, warn};
 use std::sync::Arc;
 use tokio::spawn;
 use tokio::sync::mpsc::Sender;
+use crate::core::ipfs::CID;
 
 pub static CHAIN_ID: u64 = 31337u64;
 

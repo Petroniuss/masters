@@ -1,9 +1,9 @@
 use crate::core::protocol::IPFSEvent;
-use crate::ipfs::ipfs_client::CID;
 use crate::shared::shared;
 use crate::transport::grpc::command::PermissionGraph;
-
 use tokio::sync::mpsc::Sender;
+
+pub type CID = String;
 
 /// Actual implementation will schedule IPFS RPC call and emit an event back to the protocol thread.
 pub trait IPFSFacade: Send {

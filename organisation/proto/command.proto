@@ -26,6 +26,25 @@ message PeersetGraph {
   string peerset_address = 1;
   string permission_graph_cid = 2;
 }
+/// Next steps:
+/// 1.E2E
+/// crate an integration test that runs multiple containers
+/// peers on containers.
+
+/// 2. IPFS
+/// - this should be easy (1-2hours)
+
+/// 3. Atomic Commitment
+/// - complete atomic commitment.
+/// SC per each change
+/// if we decide to use a single peerset smart contract
+/// what are cons of using single smart contract per peerset
+/// vs smart contract per each cross-peerset change.
+
+
+/// Conference paper
+/// 20.05 deadline for conference paper
+/// 29.09
 
 
 /// Step 0.
