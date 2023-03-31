@@ -2,6 +2,10 @@ use crate::ethereum_integration_test_constants::{WALLET_ONE, WALLET_THREE, WALLE
 use ethers_signers::Signer;
 use organisation::core::ethereum::crate_local_ethereum_client;
 use organisation::core::protocol::Peer;
+use testcontainers::core::{ContainerState, ExecCommand, WaitFor};
+use testcontainers::images::generic::GenericImage;
+use testcontainers::images::hello_world::HelloWorld;
+use testcontainers::{clients, Image};
 
 mod ethereum_integration_test_constants {
     use ethers_signers::LocalWallet;
@@ -24,8 +28,55 @@ mod ethereum_integration_test_constants {
     }
 }
 
+#[derive(Debug, Default)]
+pub struct AnvilImage;
+
+impl Image for AnvilImage {
+    type Args = ();
+
+    fn name(&self) -> String {
+        "ghcr.io/foundry-rs/foundry".to_string()
+    }
+
+    fn tag(&self) -> String {
+        "latest".to_string()
+    }
+
+    fn ready_conditions(&self) -> Vec<WaitFor> {
+        vec![]
+    }
+
+    fn exec_after_start(&self, cs: ContainerState) -> Vec<ExecCommand> {
+        // vec![ExecCommand {
+        //     cmd: "anvil --mnemonic \"risk upset sort tank hazard ignore used clap unveil festival barrel wrap\" --host 0.0.0.0".to_string(),
+        //     ready_conditions: vec![],
+        // }]
+        vec![]
+    }
+
+    fn entrypoint(&self) -> Option<String> {
+        let entrypoint = "anvil --host 0.0.0.0";
+        // let entrypoint = r#"anvil \
+        //     --mnemonic "risk upset sort tank hazard ignore used clap unveil festival barrel wrap" \
+        //     --host 0.0.0.0
+        //     ""#;
+
+        Some(entrypoint.to_string())
+    }
+
+    fn expose_ports(&self) -> Vec<u16> {
+        vec![8545]
+    }
+}
+
+#[tokio::test]
+async fn spawn_anvil_image() {}
+
 #[tokio::test]
 async fn peerset_smart_contract_integration_test() {
+    let docker = clients::Cli::default();
+    let _container = docker.run(AnvilImage);
+
     let eth_client = crate_local_ethereum_client(WALLET_ONE.clone()).unwrap();
     let peer_one = &WALLET_ONE.address();
     let peer_two = &WALLET_TWO.address();

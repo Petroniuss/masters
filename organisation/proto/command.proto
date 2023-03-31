@@ -14,9 +14,59 @@ service OrganisationDev {
 
   // verification: just read the graph
   rpc QueryPeersetsCID (QueryPeersetsCIDsRequest) returns (QueryPeersetsCIDsResponse) {}
+
+  // propose a change to
 }
 
-message QueryPeersetsCIDsRequest { }
+/*
+Create cross-peerset change:
+peerset 1:
+- peer 1A
+- peer 2A
+
+peerset 2:
+- peer 2A
+- peer 2B
+
+
+Making a cross-peer change:
+- peer that proposes a change stores two graphs (one for each peerset) in IPFS
+- once both graphs are persisted, peer that proposes a change sends a transaction to the peerset smart contract.
+  Transaction contains:
+  - CID of the graph for peerset 1
+  - CID of the graph for peerset 2
+  - address of the second peerset smart contract
+
+- peerset smart contract starts a voting process in two peersets:
+  - peerset 1: peers 1A and 2A
+  - peerset 2: peers 2A and 2B
+  -
+  - once voting is complete in both peersets:
+    - transaction is completed and a two new graphs are atomically set as the latest versions.
+
+Potential Problem:
+- what if one peerset takes a long time to vote for a given change?
+  - both peersets are blocked for the duration of the voting process..
+  - even if only one takes a long time, the other one is blocked.
+  - if a peerset wants to make progress it needs to vote for a change.
+  - for a single peerset that makes sense
+
+- there's no restrictions as to which peerset can transact with which peerset..
+  - though this is something that we can enforce in the smart contract - only start transaction in both
+    peersets if the transaction is coming from a peerset
+    that we've agreed to transact with (aka we've verified that peerset).
+
+Q: Having a separate smart contract per each cross-peerset change
+Pros:
+- ???
+
+Cons:
+- complicates the system.
+
+
+*/
+
+message QueryPeersetsCIDsRequest {}
 
 message QueryPeersetsCIDsResponse {
   repeated PeersetGraph peerset_graphs = 1;
