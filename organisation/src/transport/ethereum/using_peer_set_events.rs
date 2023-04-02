@@ -11,7 +11,7 @@ pub use using_peer_set_events::*;
 )]
 pub mod using_peer_set_events {
     #[rustfmt::skip]
-    const __ABI: &str = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"peerRequestingChange\",\"type\":\"address\",\"components\":[],\"indexed\":false},{\"internalType\":\"string\",\"name\":\"rejectedPeerSetPermissionGraphIPFSPointer\",\"type\":\"string\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"PeerSetPermissionGraphChangeRejected\",\"outputs\":[],\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"peerRequestingChange\",\"type\":\"address\",\"components\":[],\"indexed\":false},{\"internalType\":\"string\",\"name\":\"proposedPeerSetPermissionGraphIPFSPointer\",\"type\":\"string\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"PeerSetPermissionGraphChangeRequest\",\"outputs\":[],\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"peerRequestingChange\",\"type\":\"address\",\"components\":[],\"indexed\":false},{\"internalType\":\"string\",\"name\":\"updatedPeerSetPermissionGraphIPFSPointer\",\"type\":\"string\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"PeerSetPermissionGraphUpdated\",\"outputs\":[],\"anonymous\":false},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"cid\",\"type\":\"string\",\"components\":[],\"indexed\":false},{\"internalType\":\"bool\",\"name\":\"vote\",\"type\":\"bool\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"PeerSetPermissionGraphVoteReceived\",\"outputs\":[],\"anonymous\":false}]";
+    const __ABI: &str = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"peerRequestingChange\",\"type\":\"address\",\"components\":[],\"indexed\":false},{\"internalType\":\"string\",\"name\":\"thisPeersetProposedCID\",\"type\":\"string\",\"components\":[],\"indexed\":false},{\"internalType\":\"contract PeerSetSmartContractAPI\",\"name\":\"otherPeerset\",\"type\":\"address\",\"components\":[],\"indexed\":false},{\"internalType\":\"string\",\"name\":\"otherPeersetProposedCID\",\"type\":\"string\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"CrossPeersetGraphChangeRequest\",\"outputs\":[],\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"peerRequestingChange\",\"type\":\"address\",\"components\":[],\"indexed\":false},{\"internalType\":\"string\",\"name\":\"rejectedPeerSetPermissionGraphIPFSPointer\",\"type\":\"string\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"PeerSetPermissionGraphChangeRejected\",\"outputs\":[],\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"peerRequestingChange\",\"type\":\"address\",\"components\":[],\"indexed\":false},{\"internalType\":\"string\",\"name\":\"proposedPeerSetPermissionGraphIPFSPointer\",\"type\":\"string\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"PeerSetPermissionGraphChangeRequest\",\"outputs\":[],\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"peerRequestingChange\",\"type\":\"address\",\"components\":[],\"indexed\":false},{\"internalType\":\"string\",\"name\":\"updatedPeerSetPermissionGraphIPFSPointer\",\"type\":\"string\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"PeerSetPermissionGraphUpdated\",\"outputs\":[],\"anonymous\":false},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"cid\",\"type\":\"string\",\"components\":[],\"indexed\":false},{\"internalType\":\"bool\",\"name\":\"vote\",\"type\":\"bool\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"PeerSetPermissionGraphVoteReceived\",\"outputs\":[],\"anonymous\":false}]";
     ///The parsed JSON ABI of the contract.
     pub static USINGPEERSETEVENTS_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> =
         ::ethers::contract::Lazy::new(|| {
@@ -53,6 +53,16 @@ pub mod using_peer_set_events {
                 USINGPEERSETEVENTS_ABI.clone(),
                 client,
             ))
+        }
+        ///Gets the contract's `CrossPeersetGraphChangeRequest` event
+        pub fn cross_peerset_graph_change_request_filter(
+            &self,
+        ) -> ::ethers::contract::builders::Event<
+            ::std::sync::Arc<M>,
+            M,
+            CrossPeersetGraphChangeRequestFilter,
+        > {
+            self.0.event()
         }
         ///Gets the contract's `PeerSetPermissionGraphChangeRejected` event
         pub fn peer_set_permission_graph_change_rejected_filter(
@@ -109,6 +119,26 @@ pub mod using_peer_set_events {
         fn from(contract: ::ethers::contract::Contract<M>) -> Self {
             Self::new(contract.address(), contract.client())
         }
+    }
+    #[derive(
+        Clone,
+        ::ethers::contract::EthEvent,
+        ::ethers::contract::EthDisplay,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+    )]
+    #[ethevent(
+        name = "CrossPeersetGraphChangeRequest",
+        abi = "CrossPeersetGraphChangeRequest(address,string,address,string)"
+    )]
+    pub struct CrossPeersetGraphChangeRequestFilter {
+        pub peer_requesting_change: ::ethers::core::types::Address,
+        pub this_peerset_proposed_cid: ::std::string::String,
+        pub other_peerset: ::ethers::core::types::Address,
+        pub other_peerset_proposed_cid: ::std::string::String,
     }
     #[derive(
         Clone,
@@ -185,6 +215,7 @@ pub mod using_peer_set_events {
     ///Container type for all of the contract's events
     #[derive(Clone, ::ethers::contract::EthAbiType, Debug, PartialEq, Eq, Hash)]
     pub enum UsingPeerSetEventsEvents {
+        CrossPeersetGraphChangeRequestFilter(CrossPeersetGraphChangeRequestFilter),
         PeerSetPermissionGraphChangeRejectedFilter(PeerSetPermissionGraphChangeRejectedFilter),
         PeerSetPermissionGraphChangeRequestFilter(PeerSetPermissionGraphChangeRequestFilter),
         PeerSetPermissionGraphUpdatedFilter(PeerSetPermissionGraphUpdatedFilter),
@@ -194,6 +225,9 @@ pub mod using_peer_set_events {
         fn decode_log(
             log: &::ethers::core::abi::RawLog,
         ) -> ::core::result::Result<Self, ::ethers::core::abi::Error> {
+            if let Ok(decoded) = CrossPeersetGraphChangeRequestFilter::decode_log(log) {
+                return Ok(UsingPeerSetEventsEvents::CrossPeersetGraphChangeRequestFilter(decoded));
+            }
             if let Ok(decoded) = PeerSetPermissionGraphChangeRejectedFilter::decode_log(log) {
                 return Ok(
                     UsingPeerSetEventsEvents::PeerSetPermissionGraphChangeRejectedFilter(decoded),
@@ -218,6 +252,9 @@ pub mod using_peer_set_events {
     impl ::core::fmt::Display for UsingPeerSetEventsEvents {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
+                Self::CrossPeersetGraphChangeRequestFilter(element) => {
+                    ::core::fmt::Display::fmt(element, f)
+                }
                 Self::PeerSetPermissionGraphChangeRejectedFilter(element) => {
                     ::core::fmt::Display::fmt(element, f)
                 }
@@ -231,6 +268,11 @@ pub mod using_peer_set_events {
                     ::core::fmt::Display::fmt(element, f)
                 }
             }
+        }
+    }
+    impl ::core::convert::From<CrossPeersetGraphChangeRequestFilter> for UsingPeerSetEventsEvents {
+        fn from(value: CrossPeersetGraphChangeRequestFilter) -> Self {
+            Self::CrossPeersetGraphChangeRequestFilter(value)
         }
     }
     impl ::core::convert::From<PeerSetPermissionGraphChangeRejectedFilter>

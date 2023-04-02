@@ -42,6 +42,43 @@ abstract contract UsingDeployedPeerSetWithTwoPeersTest is
     }
 }
 
+abstract contract UsingTwoPeersetsWithTwoPeersTest is
+    UsingSharedAddressesTest,
+    UsingPeerSetEvents,
+    CommonBase
+{
+    PeerSetSmartContractAPI peerset1;
+    address[] peers1;
+    string initialCIDPeerset1 = "https://ipfs.io/p1-cid-1";
+
+    PeerSetSmartContractAPI peerset2;
+    address[] peers2;
+    string initialCIDPeerset2 = "https://ipfs.io/p2-cid-1";
+
+    constructor() {
+        peers1 = new address[](2);
+        peers1[0] = ADDRESS_PEER_1;
+        peers1[1] = ADDRESS_PEER_2;
+        peerset1 = new PeerSetSmartContract(
+            peers1, initialCIDPeerset1
+        );
+
+        peers2 = new address[](2);
+        peers2[0] = ADDRESS_PEER_3;
+        peers2[1] = ADDRESS_PEER_4;
+        peerset2 = new PeerSetSmartContract(
+            peers2, initialCIDPeerset2
+        );
+    }
+
+    function setUp() public {
+        vm.label(ADDRESS_PEER_1, "PEERSET_1_PEER_1");
+        vm.label(ADDRESS_PEER_2, "PEERSET_1_PEER_2");
+        vm.label(ADDRESS_PEER_3, "PEERSET_2_PEER_1");
+        vm.label(ADDRESS_PEER_4, "PEERSET_2_PEER_2");
+    }
+}
+
 abstract contract UsingDeployedPeerBroadcastContractTest is
     UsingSharedAddressesTest,
     UsingPeerBroadcastEvents,

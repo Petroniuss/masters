@@ -1,7 +1,13 @@
 use std::collections::HashMap;
 
 use crate::core::ethereum::{AddressToString, EthereumFacade, EthereumFacadeImpl};
-use crate::core::ipfs::{CheatingIPFSFacade, CID, IPFSFacade};
+use crate::core::ipfs::{CheatingIPFSFacade, IPFSFacade, CID};
+use crate::errors::Result;
+use crate::transport::grpc::command::{
+    CreatePeersetRequest, CreatePeersetResponse, Node, PeersetCreatedRequest, PeersetGraph,
+    PermissionGraph, ProposeChangeRequest, ProposeChangeResponse, QueryPeersetsCiDsRequest,
+    QueryPeersetsCiDsResponse,
+};
 use color_eyre::eyre::eyre;
 use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
@@ -10,12 +16,6 @@ use log::info;
 use tokio::select;
 use tokio::sync::oneshot::error::RecvError;
 use tokio::task::JoinHandle;
-use crate::errors::Result;
-use crate::transport::grpc::command::{
-    CreatePeersetRequest, CreatePeersetResponse, Node, PeersetCreatedRequest, PeersetGraph,
-    PermissionGraph, ProposeChangeRequest, ProposeChangeResponse, QueryPeersetsCiDsRequest,
-    QueryPeersetsCiDsResponse,
-};
 
 /// todo: define interface for access queries.
 /// todo: define interface for commands
@@ -566,7 +566,7 @@ impl ProtocolService {
 #[cfg(test)]
 mod tests {
     use crate::core::ethereum::EthereumFacade;
-    use crate::core::ipfs::{CID, IPFSFacade};
+    use crate::core::ipfs::{IPFSFacade, CID};
     use crate::core::protocol::{
         BlockchainEvent, IPFSEvent, Peer, ProtocolFacade, ProtocolService,
     };
