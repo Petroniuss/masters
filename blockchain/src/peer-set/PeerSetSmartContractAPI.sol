@@ -17,7 +17,6 @@ interface UsingPeerSetEvents {
         string rejectedPeerSetPermissionGraphIPFSPointer
     );
 
-    // can be from either this or other peerset
     event CrossPeersetGraphChangeRequest(
         address peerRequestingChange,
         string thisPeersetProposedCID,

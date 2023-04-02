@@ -20,11 +20,11 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         IN_PROGRESS
     }
 
+    event Foo(address x);
+
     struct VotingRound {
-        // either a peer from this peerset or a different peerset
         address changeRequester;
         string pendingCID;
-        // cross-peerset change
         PeerSetSmartContractAPI otherPeerset;
         string otherPeersetPendingCID;
         uint256 peerVotesCount;
@@ -87,6 +87,8 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         // start a voting round
         votingRound.changeRequester = peerRequestingChange;
         votingRound.pendingCID = proposedGraphIPFSPointer;
+        votingRound.otherPeersetPendingCID = "";
+        votingRound.otherPeerset = (PeerSetSmartContractAPI)(address(0));
         votingRound.peerVotesCount = 1;
         votingRound.positivePeerVotesCount = 1;
         for (uint256 i = 0; i < peersArray.length; i++) {
@@ -110,6 +112,9 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         votingRound.changeRequester = msg.sender;
         votingRound.pendingCID = thisPeersetProposedCID;
         votingRound.otherPeersetPendingCID = otherPeersetProposedCID;
+        votingRound.otherPeerset = otherPeerset;
+        votingRound.peerVotesCount = 0;
+        votingRound.positivePeerVotesCount = 0;
         for (uint256 i = 0; i < peersArray.length; i++) {
             votingRound.voted[peersArray[i]] = false;
         }
@@ -195,12 +200,12 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
 
         // this peerset also accepts the change
         if (votingState() == VotingState.ACCEPTED) {
-            currentCID = votingRound.pendingCID;
-            votingRound.changeRequester = address(0);
-
             emit PeerSetPermissionGraphUpdated(
                 votingRound.changeRequester, votingRound.pendingCID
             );
+
+            currentCID = votingRound.pendingCID;
+            votingRound.changeRequester = address(0);
 
             return true;
         }
@@ -215,10 +220,11 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
             "Caller is not a peerset"
         );
 
-        votingRound.changeRequester = address(0);
         emit PeerSetPermissionGraphChangeRejected(
             votingRound.changeRequester, votingRound.pendingCID
         );
+
+        votingRound.changeRequester = address(0);
     }
 
     function votingState() public view returns (VotingState) {
@@ -242,7 +248,7 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
     }
 
     function votingType() private view returns (VotingType) {
-        if (votingRound.changeRequester == address(votingRound.otherPeerset)) {
+        if (address(votingRound.otherPeerset) != address(0)) {
             return VotingType.CROSS_PEERSET_VOTING;
         } else {
             return VotingType.WITHIN_PEERSET_VOTING;
@@ -255,10 +261,10 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
 
     function isPeerset(address sender, PeerSetSmartContractAPI peerset)
         private
-        pure
+        view
         returns (bool)
     {
-        return sender == address(peerset);
+        return sender == address(peerset) || sender == address(this);
     }
 
     function isPeerOrPeerset(address sender, PeerSetSmartContractAPI peerset)
