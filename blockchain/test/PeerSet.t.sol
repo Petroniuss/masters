@@ -23,20 +23,19 @@ contract PeerSetTest is Test, UsingDeployedPeerSetWithTwoPeersTest {
 
         // then change is applied
         string memory latestGraph =
-        peerSetContract.currentPeerSetPermissionGraphIPFSPointer();
+            peerSetContract.currentPeerSetPermissionGraphIPFSPointer();
         assertEq(latestGraph, proposedGraph);
     }
 
     function testPeetSetSmartContractEmittedEventsAfterNewGraphWasValidated()
-    public
+        public
     {
         // given a proposed change
         string memory proposedGraph = "https://ipfs.io/ipfs/QmZ1";
         address peerRequestingChange = ADDRESS_PEER_1;
         vm.expectEmit(true, true, true, true);
         emit PeerSetPermissionGraphChangeRequest(
-            peerRequestingChange,
-            proposedGraph
+            peerRequestingChange, proposedGraph
         );
 
         vm.prank(ADDRESS_PEER_1);
@@ -67,7 +66,7 @@ contract PeerSetTest is Test, UsingDeployedPeerSetWithTwoPeersTest {
 
         // then change is rejected
         string memory latestGraph =
-        peerSetContract.currentPeerSetPermissionGraphIPFSPointer();
+            peerSetContract.currentPeerSetPermissionGraphIPFSPointer();
         assertEq(latestGraph, initialGraph);
     }
 
@@ -83,7 +82,6 @@ contract PeerSetTest is Test, UsingDeployedPeerSetWithTwoPeersTest {
         // when change is validated by the same peer
         vm.prank(ADDRESS_PEER_1);
         peerSetContract.submitPeerVote(proposedGraph, true);
-
     }
 
     function testValidationByInvalidPeer() public {
@@ -101,7 +99,7 @@ contract PeerSetTest is Test, UsingDeployedPeerSetWithTwoPeersTest {
     }
 
     function testSuccessfulValidationAfterInvalidValidationWasRejected()
-    public
+        public
     {
         // given proposed change
         vm.prank(ADDRESS_PEER_1);
@@ -121,7 +119,7 @@ contract PeerSetTest is Test, UsingDeployedPeerSetWithTwoPeersTest {
 
         // change is applied.
         string memory latestGraph =
-        peerSetContract.currentPeerSetPermissionGraphIPFSPointer();
+            peerSetContract.currentPeerSetPermissionGraphIPFSPointer();
         assertEq(latestGraph, proposedGraph);
     }
 }
