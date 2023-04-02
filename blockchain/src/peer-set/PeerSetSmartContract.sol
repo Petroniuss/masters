@@ -32,17 +32,6 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         mapping(address => bool) voted;
     }
 
-    // On change proposition:
-    // 1. Verify that there are no open voting rounds in both peersets,
-    // 2. Set up a state for counting votes (just like in a single peerset case)
-    // 3. Send events to each peerset (separately)
-
-    // 1. On each vote check if both smart contracts have reached an agreement,
-    // 2. If any of them disapproved of a change - change is rejected in both peersets
-    // 3. If both agreed - a change is accepted in both.
-    // 4. Peerset should have a way to abort transaction if the other peerset takes too long
-    //      (peer could simply vote to reject a given transaction, even after approving)
-
     // todo: creating a peerset should happen after peers agree to join a peerset.
     constructor(
         address[] memory _peers,
@@ -228,12 +217,17 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
     }
 
     function votingState() public view returns (VotingState) {
-        if (votingRound.peerVotesCount > (peersCount() / 2)) {
-            if (votingRound.positivePeerVotesCount > (peersCount() / 2)) {
-                return VotingState.ACCEPTED;
-            } else {
-                return VotingState.REJECTED;
-            }
+        uint256 rejectedVotesCount =
+            votingRound.peerVotesCount - votingRound.positivePeerVotesCount;
+        uint256 approvedVotesCount = votingRound.positivePeerVotesCount;
+        uint256 majority = peersCount() / 2;
+
+        if (rejectedVotesCount >= majority) {
+            return VotingState.REJECTED;
+        }
+
+        if (approvedVotesCount > majority) {
+            return VotingState.ACCEPTED;
         }
 
         return VotingState.IN_PROGRESS;

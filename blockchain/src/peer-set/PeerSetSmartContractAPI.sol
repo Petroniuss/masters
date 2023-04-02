@@ -42,6 +42,16 @@ interface PeerSetSmartContractAPI is UsingPeerSetEvents {
     function isPeer(address peer) external view returns (bool);
 
     // cross-peerset
+    // on change proposition:
+    // - verify that there are no open voting rounds in both peersets,
+    // - set up a state for counting votes,
+    // - send events from each peerset
+    //
+    // on each vote:
+    // - check if both peersets have reached an agreement:
+    //  - if any peerset disapproved of a change - change is rejected in both peersets,
+    //  - if both agreed - a change is accepted in both,
+    //  - otherwise wait for more votes.
     function proposeCrossPeersetChange(
         string calldata thisPeersetCID,
         string calldata otherPeersetCID,

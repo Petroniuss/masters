@@ -110,9 +110,123 @@ contract CrossPeersetTest is Test, UsingTwoPeersetsWithTwoPeersTest {
         peerset2.submitPeerVote(proposedGraphPeerset2, true);
     }
 
-    // todo: test rejecting a transaction
+    function testRejectedCrossPeersetChange() public {
+        // given proposed change
+        vm.prank(ADDRESS_PEER_1);
+        string memory proposedGraphPeerset1 = "https://ipfs.io/p1-cid-2";
+        string memory proposedGraphPeerset2 = "https://ipfs.io/p2-cid-2";
+        peerset1.proposeCrossPeersetChange(
+            proposedGraphPeerset1, proposedGraphPeerset2, peerset2
+        );
 
-    // todo: test proposing another transaction during cross-peerset transaction
+        // when peerset2 rejects the change
+        vm.prank(ADDRESS_PEER_3);
+        peerset2.submitPeerVote(proposedGraphPeerset2, false);
 
-    // todo: test two transactions in a row - see if state isn't messed up :)
+        // then transaction is rejected
+        string memory latestGraphPeerset1 =
+            peerset1.currentPeerSetPermissionGraphIPFSPointer();
+        assertEq(latestGraphPeerset1, initialCIDPeerset1);
+
+        string memory latestGraphPeerset2 =
+            peerset2.currentPeerSetPermissionGraphIPFSPointer();
+        assertEq(latestGraphPeerset2, initialCIDPeerset2);
+    }
+
+    function testEventsEmittedDuringRejectedCrossPeersetTransaction() public {
+        // given proposed change
+        vm.prank(ADDRESS_PEER_1);
+        string memory proposedGraphPeerset1 = "https://ipfs.io/p1-cid-2";
+        string memory proposedGraphPeerset2 = "https://ipfs.io/p2-cid-2";
+
+        vm.expectEmit(true, true, true, true);
+        // then event from peerset1 is emitted
+        emit CrossPeersetGraphChangeRequest(
+            ADDRESS_PEER_1,
+            proposedGraphPeerset1,
+            peerset2,
+            proposedGraphPeerset2
+        );
+
+        // then event from peerset2 is emitted
+        emit CrossPeersetGraphChangeRequest(
+            address(peerset1),
+            proposedGraphPeerset2,
+            peerset1,
+            proposedGraphPeerset1
+        );
+
+        peerset1.proposeCrossPeersetChange(
+            proposedGraphPeerset1, proposedGraphPeerset2, peerset2
+        );
+
+        // when peerset2 rejects the change
+
+        // then events about update are emitted from both peersets
+        vm.expectEmit(true, true, true, true);
+        emit PeerSetPermissionGraphChangeRejected(
+            ADDRESS_PEER_1, proposedGraphPeerset1
+        );
+
+        vm.expectEmit(true, true, true, true);
+        emit PeerSetPermissionGraphChangeRejected(
+            address(peerset1), proposedGraphPeerset2
+        );
+
+        vm.prank(ADDRESS_PEER_3);
+        peerset2.submitPeerVote(proposedGraphPeerset2, false);
+    }
+
+    function testRevertingTransactionWhenCrossPeersetTransactionIsInProgress()
+        public
+    {
+        // given proposed change
+        vm.prank(ADDRESS_PEER_1);
+        string memory proposedGraphPeerset1 = "https://ipfs.io/p1-cid-2";
+        string memory proposedGraphPeerset2 = "https://ipfs.io/p2-cid-2";
+        peerset1.proposeCrossPeersetChange(
+            proposedGraphPeerset1, proposedGraphPeerset2, peerset2
+        );
+
+        // when a change is proposed to peerset2
+
+        // then new proposition is rejected
+        vm.expectRevert();
+        string memory anotherChange = "https://ipfs.io/p2-cid-2a";
+        peerset2.proposePermissionGraphChange(anotherChange);
+    }
+
+    function testProposingChangeAfterCrossPeersetTransactionIsFinished()
+        public
+    {
+        // given a proposed and accepted change
+        vm.prank(ADDRESS_PEER_1);
+        string memory proposedGraphPeerset1 = "https://ipfs.io/p1-cid-2";
+        string memory proposedGraphPeerset2 = "https://ipfs.io/p2-cid-2";
+        peerset1.proposeCrossPeersetChange(
+            proposedGraphPeerset1, proposedGraphPeerset2, peerset2
+        );
+
+        vm.prank(ADDRESS_PEER_2);
+        peerset1.submitPeerVote(proposedGraphPeerset1, true);
+
+        vm.prank(ADDRESS_PEER_3);
+        peerset2.submitPeerVote(proposedGraphPeerset2, true);
+
+        vm.prank(ADDRESS_PEER_4);
+        peerset2.submitPeerVote(proposedGraphPeerset2, true);
+
+        // then it is possible to propose another change
+        vm.prank(ADDRESS_PEER_1);
+        string memory nextChange = "https://ipfs.io/p1-cid-3";
+        peerset1.proposePermissionGraphChange(nextChange);
+
+        vm.prank(ADDRESS_PEER_2);
+        peerset1.submitPeerVote(nextChange, true);
+
+        // another change is approved
+        string memory latestGraphPeerset1 =
+            peerset1.currentPeerSetPermissionGraphIPFSPointer();
+        assertEq(latestGraphPeerset1, nextChange);
+    }
 }
