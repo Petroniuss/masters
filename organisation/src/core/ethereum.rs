@@ -1,3 +1,4 @@
+use crate::core::ipfs::CID;
 use crate::core::protocol::{BlockchainEvent, Peer};
 use crate::errors::Result;
 use crate::transport::ethereum::peer_set_smart_contract::{
@@ -15,7 +16,6 @@ use log::{info, warn};
 use std::sync::Arc;
 use tokio::spawn;
 use tokio::sync::mpsc::Sender;
-use crate::core::ipfs::CID;
 
 pub static CHAIN_ID: u64 = 31337u64;
 
@@ -217,6 +217,9 @@ impl EthereumClient {
                     }
                     PeerSetSmartContractEvents::PeerSetPermissionGraphChangeRejectedFilter(v) => {
                         info!("PeerSetSmartContractEvent: {:?}", v);
+                    }
+                    PeerSetSmartContractEvents::CrossPeersetGraphChangeRequestFilter(_) => {
+                        todo!("CrossPeersetGraphChangeRequestFilter: {:?}", v);
                     }
                 },
                 Err(err) => {

@@ -20,8 +20,6 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         IN_PROGRESS
     }
 
-    event Foo(address x);
-
     struct VotingRound {
         address changeRequester;
         string pendingCID;
