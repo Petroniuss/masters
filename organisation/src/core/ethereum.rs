@@ -207,7 +207,7 @@ impl EthereumClient {
         let _completed_tx = pending_tx.confirmations(1).await?;
         info!("Approved transaction is committed! {}", cid);
 
-        if let Some(rec) = _completed_tx {}
+        if let Some(_rec) = _completed_tx {}
 
         Ok(())
     }

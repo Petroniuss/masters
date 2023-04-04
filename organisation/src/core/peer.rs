@@ -2,21 +2,17 @@ use crate::core::ethereum::local_wallet;
 use crate::core::grpc::OrganisationDevService;
 use crate::core::protocol::ProtocolFacade;
 use crate::errors::Result;
-use crate::shared::shared::init;
+
 use crate::transport::grpc::command::organisation_dev_server::{
-    OrganisationDev, OrganisationDevServer,
+    OrganisationDevServer,
 };
-use crate::transport::grpc::command::{
-    CreatePeersetRequest, CreatePeersetResponse, PeersetCreatedRequest, PeersetCreatedResponse,
-    ProposeChangeRequest, ProposeChangeResponse, QueryPeersetsCiDsRequest,
-    QueryPeersetsCiDsResponse,
-};
+
 use ethers::addressbook::Address;
 use ethers_signers::Signer;
 use log::info;
-use std::fmt::Display;
+
 use tonic::transport::Server;
-use tonic::{Request, Response, Status};
+
 
 pub async fn run_with_configuration(configuration: Configuration) -> Result<()> {
     let addr = format!("[::1]:{}", configuration.port).parse()?;

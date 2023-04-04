@@ -1,9 +1,9 @@
-use crate::core::ethereum::local_wallet;
+
 use crate::core::protocol::ProtocolFacade;
 use crate::errors::Result;
-use crate::shared::shared::init;
+
 use crate::transport::grpc::command::organisation_dev_server::{
-    OrganisationDev, OrganisationDevServer,
+    OrganisationDev,
 };
 use crate::transport::grpc::command::{
     CreatePeersetRequest, CreatePeersetResponse, PeersetCreatedRequest, PeersetCreatedResponse,
@@ -15,7 +15,7 @@ use backoff::ExponentialBackoff;
 use log::info;
 use std::fmt::Display;
 use std::str::FromStr;
-use tonic::transport::{Channel, Endpoint, Server};
+use tonic::transport::{Channel, Endpoint};
 use tonic::{Request, Response, Status};
 
 /// grpc generated stubs

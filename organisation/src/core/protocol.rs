@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::core::ethereum::{AddressToString, EthereumFacade, EthereumFacadeImpl};
 use crate::core::ipfs::{CheatingIPFSFacade, IPFSFacade, CID};
-use crate::core::protocol::CommandEvent::ProposeCrossPeersetChange;
+
 use crate::errors::Result;
 use crate::transport::grpc::command::{
     CreatePeersetRequest, CreatePeersetResponse, Node, PeersetCreatedRequest, PeersetGraph,
@@ -194,8 +194,8 @@ enum QueryEvent {
 
 #[derive(Debug)]
 pub struct UsersInGroupResponse {
-    group_id: String,
-    users: Vec<Node>,
+    _group_id: String,
+    _users: Vec<Node>,
 }
 
 #[derive(Debug)]
@@ -240,7 +240,7 @@ impl Peer {
 enum PeerSetTransactionState {
     None,
     ChangeProposed {
-        votes: i32,
+        _votes: i32,
         proposed_by: Peer,
         permission_graph: Option<PermissionGraph>,
         permission_graph_cid: CID,
@@ -250,7 +250,7 @@ enum PeerSetTransactionState {
 #[derive(Debug)]
 struct PeerSet {
     blockchain_address: String,
-    peers: Vec<Peer>,
+    _peers: Vec<Peer>,
 
     permission_graph_cid: CID,
     permission_graph: Option<PermissionGraph>, // todo: we probably shouldn't use type that's used in transport protocol here!
@@ -392,7 +392,10 @@ impl ProtocolService {
                 }
 
                 response_channel
-                    .send(UsersInGroupResponse { group_id, users })
+                    .send(UsersInGroupResponse {
+                        _group_id: group_id,
+                        _users: users,
+                    })
                     .expect("Sending should succeed");
             }
             QueryEvent::QueryPeersets {
@@ -431,7 +434,7 @@ impl ProtocolService {
                     address.clone(),
                     PeerSet {
                         blockchain_address: address.clone(),
-                        peers,
+                        _peers: peers,
                         permission_graph_cid: cid.clone(),
                         permission_graph: None,
                         transaction_state: PeerSetTransactionState::None,
@@ -475,7 +478,7 @@ impl ProtocolService {
                 match &peerset.transaction_state {
                     PeerSetTransactionState::None => {
                         peerset.transaction_state = PeerSetTransactionState::ChangeProposed {
-                            votes: 1,
+                            _votes: 1,
                             proposed_by,
                             permission_graph: None,
                             permission_graph_cid: new_permission_graph_cid.clone(),
@@ -540,8 +543,8 @@ impl ProtocolService {
             BlockchainEvent::NewCrossPeersetChangeProposed {
                 peerset_address,
                 this_peerset_cid,
-                other_peerset_cid,
-                other_peerset_address,
+                other_peerset_cid: _,
+                other_peerset_address: _,
             } => {
                 // approve if this change wasn't proposed by the same peer.
                 if self.pending_command.is_none() {
@@ -573,7 +576,7 @@ impl ProtocolService {
 
                 match &mut peerset.transaction_state {
                     PeerSetTransactionState::ChangeProposed {
-                        votes: _, proposed_by, permission_graph, permission_graph_cid: new_permission_graph_cid,
+                        _votes: _, proposed_by, permission_graph, permission_graph_cid: new_permission_graph_cid,
                     } => {
                         info!("Reached {} {}", new_permission_graph_cid, cid_loaded);
                         info!("Peer_addr {}, proposed_by {}", peer_addr, proposed_by.blockchain_address);
@@ -611,7 +614,7 @@ impl ProtocolService {
 
                             self.pending_command = Some(command);
                         }
-                        CommandEvent::ProposeCrossPeersetChange { ref request, .. } => {
+                        CommandEvent::ProposeCrossPeersetChange { .. } => {
                             todo!()
                         }
                     }
@@ -705,8 +708,8 @@ mod tests {
             .await
             .expect("response should be ready");
 
-        assert_eq!(response.users.len(), 1);
-        assert_eq!(response.users[0].id, "ur_1".to_string());
+        assert_eq!(response._users.len(), 1);
+        assert_eq!(response._users[0].id, "ur_1".to_string());
     }
 
     pub struct IPFSFacadeMock {
@@ -732,10 +735,10 @@ mod tests {
 
         fn async_propose_cross_peerset_change(
             &self,
-            peerset_address: String,
-            this_peerset_cid: CID,
-            other_peerset_address: String,
-            other_peerset_cid: CID,
+            _peerset_address: String,
+            _this_peerset_cid: CID,
+            _other_peerset_address: String,
+            _other_peerset_cid: CID,
         ) {
         }
 
