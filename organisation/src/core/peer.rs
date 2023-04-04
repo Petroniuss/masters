@@ -11,14 +11,14 @@ use crate::transport::grpc::command::{
     ProposeChangeRequest, ProposeChangeResponse, QueryPeersetsCiDsRequest,
     QueryPeersetsCiDsResponse,
 };
+use ethers::addressbook::Address;
+use ethers_signers::Signer;
 use log::info;
 use std::fmt::Display;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
 
 pub async fn run_with_configuration(configuration: Configuration) -> Result<()> {
-    init()?;
-    let configuration = load_configuration_from_env();
     let addr = format!("[::1]:{}", configuration.port).parse()?;
     info!("Running on: {}", addr);
 
@@ -50,9 +50,20 @@ pub fn load_configuration_from_env() -> Configuration {
     }
 }
 
+#[derive(Clone)]
 pub struct Configuration {
     pub port: String,
     pub wallet_pk: String,
+}
+
+impl Configuration {
+    pub fn address(&self) -> Address {
+        return local_wallet(self.wallet_pk.as_str()).address();
+    }
+
+    pub fn local_connection_str(&self) -> String {
+        format!("http://[::1]:{}", self.port)
+    }
 }
 
 pub fn peer_1_configuration() -> Configuration {

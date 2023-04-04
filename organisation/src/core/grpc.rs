@@ -10,9 +10,12 @@ use crate::transport::grpc::command::{
     ProposeChangeRequest, ProposeChangeResponse, QueryPeersetsCiDsRequest,
     QueryPeersetsCiDsResponse,
 };
+use backoff::future::retry;
+use backoff::ExponentialBackoff;
 use log::info;
 use std::fmt::Display;
-use tonic::transport::Server;
+use std::str::FromStr;
+use tonic::transport::{Channel, Endpoint, Server};
 use tonic::{Request, Response, Status};
 
 /// grpc generated stubs
@@ -95,4 +98,17 @@ fn handle_err_std<T, E: Display>(
     result
         .map(|x| Response::new(x))
         .map_err(|e| Status::internal(e.to_string()))
+}
+
+pub async fn connect(endpoint: &str) -> Channel {
+    retry(ExponentialBackoff::default(), || async {
+        info!("Connecting to node at {}", endpoint);
+        let channel = Endpoint::from_str(endpoint)
+            .expect("should be fine")
+            .connect()
+            .await?;
+        Ok(channel)
+    })
+    .await
+    .expect("should be able to connect to node")
 }
