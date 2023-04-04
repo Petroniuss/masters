@@ -6,7 +6,7 @@ use std::collections::HashMap;
 pub static ORGANISATION_ONE_ADDR: &'static str = "0xd13c4379bfc9a0ea5e147b2d37f65eb2400dfd7b";
 pub static ORGANISATION_TWO_ADDR: &'static str = "0xd248e4a8407ed7ff9bdbc396ba46723b8101c86e";
 
-pub fn shared_init() -> Result<()> {
+pub fn init() -> Result<()> {
     color_eyre::install()?;
     pretty_env_logger::try_init()?;
     Ok(())

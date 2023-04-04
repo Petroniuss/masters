@@ -25,6 +25,14 @@ pub trait EthereumFacade: Send {
 
     fn async_propose_change(&self, peerset_address: String, permission_graph_cid: CID);
 
+    fn async_propose_cross_peerset_change(
+        &self,
+        peerset_address: String,
+        this_peerset_cid: CID,
+        other_peerset_address: String,
+        other_peerset_cid: CID,
+    );
+
     fn async_approve_change(&self, peerset_address: String, permission_graph_cid: CID);
 
     fn subscribe_to_peerset_events(&self, peerset_address: String);
@@ -74,6 +82,29 @@ impl EthereumFacade for EthereumFacadeImpl {
         spawn(async move {
             client
                 .propose_change(address, permission_graph_cid)
+                .await
+                .unwrap();
+        });
+    }
+
+    fn async_propose_cross_peerset_change(
+        &self,
+        peerset_address: String,
+        this_peerset_cid: CID,
+        other_peerset_address: String,
+        other_peerset_cid: CID,
+    ) {
+        let peerset_address = peerset_address.parse::<Address>().unwrap();
+        let other_peerset_address = other_peerset_address.parse::<Address>().unwrap();
+        let client = self.ethereum_client.clone();
+        spawn(async move {
+            client
+                .propose_cross_peerset_change(
+                    peerset_address,
+                    this_peerset_cid,
+                    other_peerset_address,
+                    other_peerset_cid,
+                )
                 .await
                 .unwrap();
         });
@@ -145,6 +176,27 @@ impl EthereumClient {
         Ok(())
     }
 
+    pub async fn propose_cross_peerset_change(
+        &self,
+        peerset_address: Address,
+        this_peerset_cid: CID,
+        other_peerset_address: Address,
+        other_peerset_cid: CID,
+    ) -> Result<()> {
+        let middleware = self.ethereum_middleware.clone();
+        let sc = PeerSetSmartContract::new(peerset_address, middleware);
+
+        let call = sc.propose_cross_peerset_change(
+            this_peerset_cid,
+            other_peerset_cid,
+            other_peerset_address,
+        );
+        let pending_tx = call.send().await.map_err(parse_contract_error)?;
+
+        let _completed_tx = pending_tx.confirmations(1).await?;
+        Ok(())
+    }
+
     pub async fn approve_change(&self, peerset_address: Address, cid: CID) -> Result<()> {
         let middleware = self.ethereum_middleware.clone();
         let sc = PeerSetSmartContract::new(peerset_address.clone(), middleware);
@@ -153,6 +205,9 @@ impl EthereumClient {
         let pending_tx = call.send().await.map_err(parse_contract_error)?;
 
         let _completed_tx = pending_tx.confirmations(1).await?;
+        info!("Approved transaction is committed! {}", cid);
+
+        if let Some(_rec) = _completed_tx {}
 
         Ok(())
     }
@@ -212,14 +267,23 @@ impl EthereumClient {
                             .unwrap();
                     }
 
+                    PeerSetSmartContractEvents::CrossPeersetGraphChangeRequestFilter(v) => {
+                        sender
+                            .send(BlockchainEvent::NewCrossPeersetChangeProposed {
+                                peerset_address: peerset_address.to_full_string(),
+                                this_peerset_cid: v.this_peerset_proposed_cid,
+                                other_peerset_cid: v.other_peerset_proposed_cid,
+                                other_peerset_address: v.other_peerset.to_full_string(),
+                            })
+                            .await
+                            .unwrap();
+                    }
+
                     PeerSetSmartContractEvents::PeerSetPermissionGraphVoteReceivedFilter(v) => {
-                        info!("PeerSetSmartContractEvent: {:?}", v);
+                        info!("PeerSetSmartContractEvent: {:?}, {}", v, &peerset_address);
                     }
                     PeerSetSmartContractEvents::PeerSetPermissionGraphChangeRejectedFilter(v) => {
-                        info!("PeerSetSmartContractEvent: {:?}", v);
-                    }
-                    PeerSetSmartContractEvents::CrossPeersetGraphChangeRequestFilter(_) => {
-                        todo!("CrossPeersetGraphChangeRequestFilter: {:?}", v);
+                        info!("PeerSetSmartContractEvent: {:?}, {}", v, &peerset_address)
                     }
                 },
                 Err(err) => {

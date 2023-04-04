@@ -56,6 +56,28 @@ pub struct ProposeChangeRequest {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ProposeCrossPeersetChangeRequest {
+    #[prost(string, tag = "1")]
+    pub peerset_address: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub new_permission_graph: ::core::option::Option<PermissionGraph>,
+    #[prost(string, tag = "3")]
+    pub other_peerset_address: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub other_permission_graph: ::core::option::Option<PermissionGraph>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ProposeCrossPeersetChangeResponse {
+    #[prost(string, tag = "1")]
+    pub proposed_cid: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub other_proposed_cid: ::prost::alloc::string::String,
+    #[prost(bool, tag = "3")]
+    pub accepted: bool,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ProposeChangeResponse {
     #[prost(string, tag = "1")]
     pub proposed_cid: ::prost::alloc::string::String,
@@ -241,6 +263,24 @@ pub mod organisation_dev_client {
                 http::uri::PathAndQuery::from_static("/command.OrganisationDev/ProposeChange");
             self.inner.unary(request.into_request(), path, codec).await
         }
+        /// triggers process of proposing a cross-peerset change.
+        pub async fn propose_cross_peerset_change(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ProposeCrossPeersetChangeRequest>,
+        ) -> Result<tonic::Response<super::ProposeCrossPeersetChangeResponse>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/command.OrganisationDev/ProposeCrossPeersetChange",
+            );
+            self.inner.unary(request.into_request(), path, codec).await
+        }
         /// verification: just read the graph
         pub async fn query_peersets_cid(
             &mut self,
@@ -281,6 +321,11 @@ pub mod organisation_dev_server {
             &self,
             request: tonic::Request<super::ProposeChangeRequest>,
         ) -> Result<tonic::Response<super::ProposeChangeResponse>, tonic::Status>;
+        /// triggers process of proposing a cross-peerset change.
+        async fn propose_cross_peerset_change(
+            &self,
+            request: tonic::Request<super::ProposeCrossPeersetChangeRequest>,
+        ) -> Result<tonic::Response<super::ProposeCrossPeersetChangeResponse>, tonic::Status>;
         /// verification: just read the graph
         async fn query_peersets_cid(
             &self,
@@ -432,6 +477,41 @@ pub mod organisation_dev_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = ProposeChangeSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/command.OrganisationDev/ProposeCrossPeersetChange" => {
+                    #[allow(non_camel_case_types)]
+                    struct ProposeCrossPeersetChangeSvc<T: OrganisationDev>(pub Arc<T>);
+                    impl<T: OrganisationDev>
+                        tonic::server::UnaryService<super::ProposeCrossPeersetChangeRequest>
+                        for ProposeCrossPeersetChangeSvc<T>
+                    {
+                        type Response = super::ProposeCrossPeersetChangeResponse;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ProposeCrossPeersetChangeRequest>,
+                        ) -> Self::Future {
+                            let inner = self.0.clone();
+                            let fut =
+                                async move { (*inner).propose_cross_peerset_change(request).await };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = ProposeCrossPeersetChangeSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
                             accept_compression_encodings,

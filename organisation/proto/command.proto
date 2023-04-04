@@ -12,6 +12,9 @@ service OrganisationDev {
   // triggers process of proposing a change to the permission graph.
   rpc ProposeChange (ProposeChangeRequest) returns (ProposeChangeResponse) {}
 
+  // triggers process of proposing a cross-peerset change.
+  rpc ProposeCrossPeersetChange (ProposeCrossPeersetChangeRequest) returns (ProposeCrossPeersetChangeResponse) {}
+
   // verification: just read the graph
   rpc QueryPeersetsCID (QueryPeersetsCIDsRequest) returns (QueryPeersetsCIDsResponse) {}
 }
@@ -26,6 +29,7 @@ message PeersetGraph {
   string peerset_address = 1;
   string permission_graph_cid = 2;
 }
+
 /// Next steps:
 /// 1.E2E
 /// crate an integration test that runs multiple containers
@@ -117,6 +121,19 @@ message PeersetCreatedResponse {}
 message ProposeChangeRequest {
   string peerset_address = 1;
   PermissionGraph new_permission_graph = 2;
+}
+
+message ProposeCrossPeersetChangeRequest {
+  string peerset_address = 1;
+  PermissionGraph new_permission_graph = 2;
+  string other_peerset_address = 3;
+  PermissionGraph other_permission_graph = 4;
+}
+
+message ProposeCrossPeersetChangeResponse {
+  string proposed_cid = 1;
+  string other_proposed_cid = 2;
+  bool accepted = 3;
 }
 
 message ProposeChangeResponse {
