@@ -25,7 +25,7 @@ async fn connect(endpoint: &'static str) -> Channel {
 /// It sends commands via gRPC to nodes to verify their behaviour & state.
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    shared::shared_init()?;
+    shared::init()?;
     let channel = connect("http://[::1]:50051").await;
     let mut client_1 = OrganisationDevClient::new(channel);
 

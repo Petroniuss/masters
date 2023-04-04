@@ -67,3 +67,8 @@ gen-proto = ["dep:tonic-build"]
 path = "tests/ethereum_integration_tests.rs"
 name = "ethereum_integration_tests"
 test = false
+
+[[test]]
+path = "tests/atomic_commitment_integration_test.rs"
+name = "atomic_commitment_integration_test"
+test = false

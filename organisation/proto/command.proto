@@ -26,6 +26,7 @@ message PeersetGraph {
   string peerset_address = 1;
   string permission_graph_cid = 2;
 }
+
 /// Next steps:
 /// 1.E2E
 /// crate an integration test that runs multiple containers
