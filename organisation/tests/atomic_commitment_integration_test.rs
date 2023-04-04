@@ -1,3 +1,4 @@
+use backoff::future::{Retry, Sleeper};
 use log::info;
 use organisation::core::ethereum::AddressToString;
 use organisation::core::grpc::connect;
@@ -11,6 +12,8 @@ use organisation::shared::shared;
 use organisation::shared::shared::init;
 use organisation::transport::grpc::command;
 use organisation::transport::grpc::command::organisation_dev_client::OrganisationDevClient;
+use std::future::Future;
+use std::pin::Pin;
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -21,7 +24,6 @@ use tokio::time::sleep;
 /// - subscribe for cross_peerset_changes,
 /// - propose a cross_peerset_change,
 /// - approve changes in both peersets,
-/// - this could simply be an integration test now that I think about it
 #[tokio::test]
 async fn atomic_commitment() -> Result<()> {
     init()?;
@@ -57,8 +59,7 @@ async fn atomic_commitment() -> Result<()> {
 
     let channel = connect(peer_2_conf.local_connection_str().as_str()).await;
     let mut client_2 = OrganisationDevClient::new(channel);
-
-    {
+    let peerset_1_address = {
         let permission_graph_p1_v1 = shared::demo_graph();
         let peers = vec![
             peer_1_conf.address().to_full_string(),
@@ -85,10 +86,114 @@ async fn atomic_commitment() -> Result<()> {
                 peers: peers.clone(),
             }))
             .await?;
+
+        peerset_response.deployed_peerset_smart_contract_address
+    };
+
+    info!("Creating peerset 2...");
+    let channel = connect(peer_3_conf.local_connection_str().as_str()).await;
+    let mut client_3 = OrganisationDevClient::new(channel);
+
+    let channel = connect(peer_4_conf.local_connection_str().as_str()).await;
+    let mut client_4 = OrganisationDevClient::new(channel);
+    let peerset_2_address = {
+        // todo: once ipfs is implemented use a different graph.
+        let permission_graph_p1_v1 = shared::demo_graph();
+        let peers = vec![
+            peer_3_conf.address().to_full_string(),
+            peer_4_conf.address().to_full_string(),
+        ];
+
+        let peerset_response = client_3
+            .create_peerset(tonic::Request::new(command::CreatePeersetRequest {
+                name: "p2".to_string(),
+                peers: peers.clone(),
+                initial_permission_graph: Some(permission_graph_p1_v1.clone()),
+            }))
+            .await?
+            .into_inner();
+        info!("Created Peerset 2: {:?}", peerset_response);
+
+        info!("Notifying peer4 that peerset 2 has been created..");
+        let _response = client_4
+            .peerset_created(tonic::Request::new(command::PeersetCreatedRequest {
+                deployed_peerset_smart_contract_address: peerset_response
+                    .deployed_peerset_smart_contract_address
+                    .clone(),
+                permission_graph_cid: peerset_response.cid.clone(),
+                peers: peers.clone(),
+            }))
+            .await?;
+
+        peerset_response.deployed_peerset_smart_contract_address
+    };
+
+    info!("Proposing a cross-peerset change");
+    {
+        client_1
+            .propose_cross_peerset_change(tonic::Request::new(
+                command::ProposeCrossPeersetChangeRequest {
+                    peerset_address: peerset_1_address,
+                    new_permission_graph: None,
+                    other_peerset_address: peerset_2_address,
+                    other_permission_graph: None,
+                },
+            ))
+            .await?;
     }
 
-    // create peerset 2
-    sleep(Duration::new(2, 0)).await;
+    info!("Waiting for cross-peerset change to be acknowledged in peerset 1..");
+    eventually_passes(
+        || async {
+            client_1
+                .clone()
+                .query_peersets_cid(tonic::Request::new(command::QueryPeersetsCiDsRequest {}))
+                .await
+                .unwrap()
+                .into_inner()
+        },
+        |response| {
+            response.peerset_graphs[0].permission_graph_cid == "ipfs://cross-peerset-change-1"
+        },
+        "current cid should be set by cross-peerset change",
+    );
+
+    info!("Waiting for cross-peerset change to be acknowledged in peerset 2..");
+    eventually_passes(
+        || async {
+            client_4
+                .clone()
+                .query_peersets_cid(tonic::Request::new(command::QueryPeersetsCiDsRequest {}))
+                .await
+                .unwrap()
+                .into_inner()
+        },
+        |response| {
+            response.peerset_graphs[0].permission_graph_cid == "ipfs://cross-peerset-change-2"
+        },
+        "current cid should be set by cross-peerset change",
+    );
 
     Ok(())
+}
+
+pub async fn eventually_passes<I, Fun, Fut, P>(
+    mut operation: Fun,
+    predicate: P,
+    expected: &'static str,
+) where
+    Fun: FnMut() -> Fut,
+    P: Fn(I) -> bool,
+    Fut: Future<Output = I>,
+{
+    let mut interval = tokio::time::interval(Duration::from_secs(1));
+    for _i in 0..10 {
+        interval.tick().await;
+        let result = operation().await;
+        if predicate(result) {
+            return;
+        }
+    }
+
+    panic!("{}", expected)
 }

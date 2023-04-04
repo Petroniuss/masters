@@ -2,11 +2,12 @@ use std::collections::HashMap;
 
 use crate::core::ethereum::{AddressToString, EthereumFacade, EthereumFacadeImpl};
 use crate::core::ipfs::{CheatingIPFSFacade, IPFSFacade, CID};
+use crate::core::protocol::CommandEvent::ProposeCrossPeersetChange;
 use crate::errors::Result;
 use crate::transport::grpc::command::{
     CreatePeersetRequest, CreatePeersetResponse, Node, PeersetCreatedRequest, PeersetGraph,
-    PermissionGraph, ProposeChangeRequest, ProposeChangeResponse, QueryPeersetsCiDsRequest,
-    QueryPeersetsCiDsResponse,
+    PermissionGraph, ProposeChangeRequest, ProposeChangeResponse, ProposeCrossPeersetChangeRequest,
+    ProposeCrossPeersetChangeResponse, QueryPeersetsCiDsRequest, QueryPeersetsCiDsResponse,
 };
 use color_eyre::eyre::eyre;
 use ethers::types::Address;
@@ -17,8 +18,6 @@ use tokio::select;
 use tokio::sync::oneshot::error::RecvError;
 use tokio::task::JoinHandle;
 
-/// todo: define interface for access queries.
-/// todo: define interface for commands
 pub struct ProtocolFacade {
     query_sender: tokio::sync::mpsc::Sender<QueryEvent>,
     command_sender: tokio::sync::mpsc::Sender<CommandEvent>,
@@ -109,6 +108,22 @@ impl ProtocolFacade {
         receiver.await.unwrap()
     }
 
+    pub async fn propose_cross_peerset_change(
+        &self,
+        request: ProposeCrossPeersetChangeRequest,
+    ) -> ProposeCrossPeersetChangeResponse {
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        self.command_sender
+            .send(CommandEvent::ProposeCrossPeersetChange {
+                request,
+                response_channel: sender,
+            })
+            .await
+            .unwrap();
+
+        receiver.await.unwrap()
+    }
+
     pub async fn query_peersets(
         &self,
         query_peersets: QueryPeersetsCiDsRequest,
@@ -156,7 +171,12 @@ pub enum BlockchainEvent {
         peerset_address: String,
         new_permission_graph_cid: String,
     },
-    // todo: ChangeRejected
+    NewCrossPeersetChangeProposed {
+        peerset_address: String,
+        this_peerset_cid: String,
+        other_peerset_cid: String,
+        other_peerset_address: String,
+    },
 }
 
 #[derive(Debug)]
@@ -187,6 +207,10 @@ pub enum CommandEvent {
     ProposeChange {
         request: ProposeChangeRequest,
         response_channel: tokio::sync::oneshot::Sender<ProposeChangeResponse>,
+    },
+    ProposeCrossPeersetChange {
+        request: ProposeCrossPeersetChangeRequest,
+        response_channel: tokio::sync::oneshot::Sender<ProposeCrossPeersetChangeResponse>,
     },
 }
 
@@ -323,6 +347,19 @@ impl ProtocolService {
                     Some(request.peerset_address.clone()),
                 );
             }
+            CommandEvent::ProposeCrossPeersetChange { request, .. } => {
+                // todo: scrappy skip IPFS here and just make appropriate calls to blockchain
+                // todo: return when given change is accepted..
+                let scrappy_ipfs_cid_1 = "ipfs://cross-peerset-change-1";
+                let scrappy_ipfs_cid_2 = "ipfs://cross-peerset-change-2";
+
+                self.ethereum_facade.async_propose_cross_peerset_change(
+                    request.peerset_address.clone(),
+                    scrappy_ipfs_cid_1.to_string(),
+                    request.other_peerset_address.clone(),
+                    scrappy_ipfs_cid_2.to_string(),
+                );
+            }
         }
 
         self.pending_command = Some(command_event);
@@ -422,6 +459,9 @@ impl ProtocolService {
                         CommandEvent::ProposeChange { .. } => {
                             todo!()
                         }
+                        CommandEvent::ProposeCrossPeersetChange { .. } => {
+                            todo!()
+                        }
                     }
                 }
             }
@@ -482,7 +522,32 @@ impl ProtocolService {
                         CommandEvent::CreatePeersetRequest { .. } => {
                             panic!()
                         }
+                        CommandEvent::ProposeCrossPeersetChange {
+                            request: _,
+                            response_channel,
+                        } => {
+                            response_channel
+                                .send(ProposeCrossPeersetChangeResponse {
+                                    proposed_cid: "ipfs://cross-peerset-change-1".to_string(),
+                                    other_proposed_cid: "ipfs://cross-peerset-change-2".to_string(),
+                                    accepted: true,
+                                })
+                                .unwrap();
+                        }
                     }
+                }
+            }
+            BlockchainEvent::NewCrossPeersetChangeProposed {
+                peerset_address,
+                this_peerset_cid,
+                other_peerset_cid,
+                other_peerset_address,
+            } => {
+                // approve if this change wasn't proposed by the same peer.
+                if self.pending_command.is_none() {
+                    info!("Approving the change!");
+                    self.ethereum_facade
+                        .async_approve_change(peerset_address, this_peerset_cid);
                 }
             }
         }
@@ -545,6 +610,9 @@ impl ProtocolService {
                                 .async_propose_change(request.peerset_address.clone(), cid);
 
                             self.pending_command = Some(command);
+                        }
+                        CommandEvent::ProposeCrossPeersetChange { ref request, .. } => {
+                            todo!()
                         }
                     }
                 }
@@ -661,6 +729,15 @@ mod tests {
         }
 
         fn async_propose_change(&self, _peerset_address: String, _permission_graph_cid: CID) {}
+
+        fn async_propose_cross_peerset_change(
+            &self,
+            peerset_address: String,
+            this_peerset_cid: CID,
+            other_peerset_address: String,
+            other_peerset_cid: CID,
+        ) {
+        }
 
         fn async_approve_change(&self, _peerset_address: String, _permission_graph_cid: CID) {}
 

@@ -7,8 +7,8 @@ use crate::transport::grpc::command::organisation_dev_server::{
 };
 use crate::transport::grpc::command::{
     CreatePeersetRequest, CreatePeersetResponse, PeersetCreatedRequest, PeersetCreatedResponse,
-    ProposeChangeRequest, ProposeChangeResponse, QueryPeersetsCiDsRequest,
-    QueryPeersetsCiDsResponse,
+    ProposeChangeRequest, ProposeChangeResponse, ProposeCrossPeersetChangeRequest,
+    ProposeCrossPeersetChangeResponse, QueryPeersetsCiDsRequest, QueryPeersetsCiDsResponse,
 };
 use backoff::future::retry;
 use backoff::ExponentialBackoff;
@@ -64,11 +64,24 @@ impl OrganisationDev for OrganisationDevService {
         &self,
         request: Request<ProposeChangeRequest>,
     ) -> std::result::Result<Response<ProposeChangeResponse>, Status> {
-        info!("Proposing a change: {:?}", request);
+        info!("Proposing a change");
 
         let result = self
             .protocol_facade
             .propose_change(request.into_inner())
+            .await;
+        handle_err(Ok(result))
+    }
+
+    async fn propose_cross_peerset_change(
+        &self,
+        request: Request<ProposeCrossPeersetChangeRequest>,
+    ) -> std::result::Result<Response<ProposeCrossPeersetChangeResponse>, Status> {
+        info!("Proposing a cross-peerset change");
+
+        let result = self
+            .protocol_facade
+            .propose_cross_peerset_change(request.into_inner())
             .await;
         handle_err(Ok(result))
     }
