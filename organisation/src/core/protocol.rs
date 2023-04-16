@@ -54,6 +54,7 @@ impl ProtocolFacade {
         }
     }
 
+    #[allow(dead_code)]
     pub async fn query_users_in_group(
         &self,
         group_id: String,
@@ -707,7 +708,9 @@ mod tests {
     use crate::core::protocol::{
         BlockchainEvent, IPFSEvent, Peer, ProtocolFacade, ProtocolService,
     };
-    use crate::transport::grpc::command::{CreatePeersetRequest, PermissionGraph};
+    use crate::transport::grpc::command::{
+        CreatePeersetRequest, PermissionGraph, QueryPeersetsCiDsRequest,
+    };
 
     use crate::shared::shared;
 
@@ -770,12 +773,14 @@ mod tests {
 
         // then
         let response = protocol_facade
-            .query_users_in_group("gr_1".to_string())
-            .await
-            .expect("response should be ready");
+            .query_peersets(QueryPeersetsCiDsRequest {})
+            .await;
 
-        assert_eq!(response._users.len(), 1);
-        assert_eq!(response._users[0].id, "ur_1".to_string());
+        assert_eq!(response.peerset_graphs.len(), 1);
+        assert_eq!(
+            response.peerset_graphs[0].permission_graph_cid,
+            "ipfs://test-cid-1"
+        )
     }
 
     pub struct IPFSFacadeMock {
