@@ -513,11 +513,12 @@ impl ProtocolService {
                 {
                     let peerset = self.peerset_by_address(peerset_address)?;
                     peerset.permission_graph_cid = new_permission_graph_cid.clone();
-                    if let Some(permission_graph) = peerset.permission_graph.take() {
-                        peerset.permission_graph = Some(permission_graph)
-                    } else {
-                        peerset.permission_graph = None;
-                    }
+                    peerset.permission_graph = None;
+
+                    self.ipfs_facade.async_load_permission_graph(
+                        new_permission_graph_cid.clone(),
+                        peerset_address.clone(),
+                    );
                 }
 
                 if let Some(command) = self.pending_command.take() {
