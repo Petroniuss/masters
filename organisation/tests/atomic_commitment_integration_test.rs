@@ -252,6 +252,10 @@ async fn cross_peerset_change() -> Result<()> {
             .await?
             .into_inner()
     };
+    info!(
+        "Successfully proposed cross-peerset change: {:?}",
+        cross_peerset_change_response
+    );
 
     info!("Waiting for cross-peerset change to be acknowledged in peerset 1..");
     eventually_passes(
@@ -264,7 +268,8 @@ async fn cross_peerset_change() -> Result<()> {
                 .into_inner()
         },
         |response| {
-            response.peerset_graphs[0].permission_graph_cid == cross_peerset_change_response.proposed_cid
+            response.peerset_graphs[0].permission_graph_cid
+                == cross_peerset_change_response.proposed_cid
         },
         "current cid should be set by cross-peerset change",
     )
@@ -281,7 +286,8 @@ async fn cross_peerset_change() -> Result<()> {
                 .into_inner()
         },
         |response| {
-            response.peerset_graphs[0].permission_graph_cid == cross_peerset_change_response.other_proposed_cid
+            response.peerset_graphs[0].permission_graph_cid
+                == cross_peerset_change_response.other_proposed_cid
         },
         "current cid should be set by cross-peerset change",
     )

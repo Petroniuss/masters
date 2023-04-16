@@ -248,10 +248,17 @@ impl Peer {
 enum PeerSetTransactionState {
     None,
     ChangeProposed {
-        _votes: i32,
         proposed_by: Peer,
         permission_graph: Option<PermissionGraph>,
         permission_graph_cid: CID,
+    },
+    CrossPeersetChangeProposed {
+        _permission_graph: Option<PermissionGraph>,
+        _permission_graph_cid: CID,
+
+        _other_peerset_address: String,
+        other_peerset_cid: CID,
+        _other_peerset_permission_graph: Option<PermissionGraph>,
     },
 }
 
@@ -481,7 +488,6 @@ impl ProtocolService {
                 match &peerset.transaction_state {
                     PeerSetTransactionState::None => {
                         peerset.transaction_state = PeerSetTransactionState::ChangeProposed {
-                            _votes: 1,
                             proposed_by,
                             permission_graph: None,
                             permission_graph_cid: new_permission_graph_cid.clone(),
@@ -504,14 +510,15 @@ impl ProtocolService {
                 ref peerset_address,
                 ref new_permission_graph_cid,
             } => {
-                let peerset = self.peerset_by_address(peerset_address)?;
-                peerset.permission_graph_cid = new_permission_graph_cid.clone();
-                if let Some(permission_graph) = peerset.permission_graph.take() {
-                    peerset.permission_graph = Some(permission_graph)
-                } else {
-                    peerset.permission_graph = None;
+                {
+                    let peerset = self.peerset_by_address(peerset_address)?;
+                    peerset.permission_graph_cid = new_permission_graph_cid.clone();
+                    if let Some(permission_graph) = peerset.permission_graph.take() {
+                        peerset.permission_graph = Some(permission_graph)
+                    } else {
+                        peerset.permission_graph = None;
+                    }
                 }
-                peerset.transaction_state = PeerSetTransactionState::None;
 
                 if let Some(command) = self.pending_command.take() {
                     match command {
@@ -532,26 +539,61 @@ impl ProtocolService {
                             request: _,
                             response_channel,
                         } => {
+                            let peerset = self.peerset_by_address_imm(peerset_address)?;
+                            let other_proposed_cid = match &peerset.transaction_state {
+                                PeerSetTransactionState::CrossPeersetChangeProposed { other_peerset_cid, .. } => {
+                                    other_peerset_cid.clone()
+                                }
+                                _ => {
+                                    return Err(eyre!(
+                                        "PeerSetTransactionState should be CrossPeersetChangeProposed when a new change is accepted."
+                                    ))
+                                }
+                            };
+
                             response_channel
                                 .send(ProposeCrossPeersetChangeResponse {
-                                    proposed_cid: "ipfs://cross-peerset-change-1".to_string(),
-                                    other_proposed_cid: "ipfs://cross-peerset-change-2".to_string(),
+                                    proposed_cid: new_permission_graph_cid.clone(),
+                                    other_proposed_cid,
                                     accepted: true,
                                 })
                                 .unwrap();
                         }
                     }
                 }
+
+                let peerset = self.peerset_by_address(peerset_address)?;
+                peerset.transaction_state = PeerSetTransactionState::None;
             }
             BlockchainEvent::NewCrossPeersetChangeProposed {
                 peerset_address,
                 this_peerset_cid,
-                other_peerset_cid: _,
-                other_peerset_address: _,
+                other_peerset_cid,
+                other_peerset_address,
             } => {
+                let peerset = self.peerset_by_address(&peerset_address)?;
+
+                match &peerset.transaction_state {
+                    PeerSetTransactionState::None => {
+                        peerset.transaction_state =
+                            PeerSetTransactionState::CrossPeersetChangeProposed {
+                                _permission_graph: None,
+                                _permission_graph_cid: this_peerset_cid.clone(),
+                                _other_peerset_address: other_peerset_address,
+                                other_peerset_cid,
+                                _other_peerset_permission_graph: None,
+                            }
+                    }
+
+                    _ => {
+                        return Err(eyre!(
+                            "PeerSetTransactionState should be None when a new change is proposed."
+                        ))
+                    }
+                }
+
                 // approve if this change wasn't proposed by the same peer.
                 if self.pending_command.is_none() {
-                    info!("Approving the change!");
                     self.ethereum_facade
                         .async_approve_change(peerset_address, this_peerset_cid);
                 }
@@ -579,7 +621,7 @@ impl ProtocolService {
 
                 match &mut peerset.transaction_state {
                     PeerSetTransactionState::ChangeProposed {
-                        _votes: _, proposed_by, permission_graph, permission_graph_cid: new_permission_graph_cid,
+                        proposed_by, permission_graph, permission_graph_cid: new_permission_graph_cid,
                     } => {
                         info!("Reached {} {}", new_permission_graph_cid, cid_loaded);
                         info!("Peer_addr {}, proposed_by {}", peer_addr, proposed_by.blockchain_address);
@@ -645,6 +687,13 @@ impl ProtocolService {
         return self
             .peersets
             .get_mut(address)
+            .ok_or(eyre!("no peerset with given address"));
+    }
+
+    fn peerset_by_address_imm(&mut self, address: &str) -> Result<&PeerSet> {
+        return self
+            .peersets
+            .get(address)
             .ok_or(eyre!("no peerset with given address"));
     }
 }
@@ -790,10 +839,10 @@ mod tests {
 
         fn async_save_permission_graphs(
             &self,
-            peerset_address: String,
-            this_peerset_permission_graph: PermissionGraph,
-            other_peerset_address: String,
-            other_peerset_permission_graph: PermissionGraph,
+            _peerset_address: String,
+            _this_peerset_permission_graph: PermissionGraph,
+            _other_peerset_address: String,
+            _other_peerset_permission_graph: PermissionGraph,
         ) {
             todo!()
         }
