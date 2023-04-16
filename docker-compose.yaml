@@ -6,3 +6,10 @@ services:
     image: petroniuss/masters-anvil:latest
     ports:
       - "8545:8545"
+  ipfs:
+    container_name: masters-ipfs
+    image: ipfs/kubo:latest
+    ports:
+      - "4001:4001"
+      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:5001:5001"

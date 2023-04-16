@@ -1,5 +1,3 @@
-
-
 use log::info;
 use organisation::core::grpc::connect;
 use organisation::shared::shared;
@@ -9,7 +7,7 @@ use organisation::transport::grpc::command::{
     Edge, Edges, Node, NodeType, PeersetGraph, QueryPeersetsCiDsRequest,
 };
 
-
+/// this has been largely replaced by integration tests.
 /// **coordinator**
 ///
 /// The coordinator is used for testing purposes,
@@ -23,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let channel = connect("http://[::1]:50052").await;
     let mut client_2 = OrganisationDevClient::new(channel);
 
-    let permission_graph_p1_v1 = shared::demo_graph();
+    let permission_graph_p1_v1 = shared::demo_graph_p1_v1();
 
     let peers = vec![
         shared::ORGANISATION_ONE_ADDR.to_string(),
