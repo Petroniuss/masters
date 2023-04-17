@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::core::ethereum::{AddressToString, EthereumFacade, EthereumFacadeImpl};
-use crate::core::ipfs::{CheatingIPFSFacade, IPFSFacade, CID};
+use crate::core::ipfs::{IPFSFacade, IPFSWrapper, CID};
 
 use crate::errors::Result;
 use crate::transport::grpc::command::{
@@ -33,7 +33,8 @@ impl ProtocolFacade {
 
         let peer = Peer::new(wallet.address().to_full_string());
 
-        let ipfs_facade = CheatingIPFSFacade::new(ipfs_sender);
+        let ipfs_facade = IPFSWrapper::new(ipfs_sender);
+
         let ethereum_facade = EthereumFacadeImpl::new(wallet, blockchain_sender.clone());
 
         let _handle = ProtocolService::start_event_loop(
@@ -53,6 +54,7 @@ impl ProtocolFacade {
         }
     }
 
+    #[allow(dead_code)]
     pub async fn query_users_in_group(
         &self,
         group_id: String,
@@ -153,6 +155,13 @@ pub enum IPFSEvent {
         cid: CID,
         peerset_address: Option<String>, // if None, then it's a new peerset
     },
+
+    CrossPeersetPermissionGraphsSaved {
+        peerset_address: String,
+        this_peerset_cid: CID,
+        other_peerset_address: String,
+        other_peerset_cid: CID,
+    },
 }
 
 #[derive(Debug)]
@@ -240,10 +249,17 @@ impl Peer {
 enum PeerSetTransactionState {
     None,
     ChangeProposed {
-        _votes: i32,
         proposed_by: Peer,
         permission_graph: Option<PermissionGraph>,
         permission_graph_cid: CID,
+    },
+    CrossPeersetChangeProposed {
+        _permission_graph: Option<PermissionGraph>,
+        _permission_graph_cid: CID,
+
+        _other_peerset_address: String,
+        other_peerset_cid: CID,
+        _other_peerset_permission_graph: Option<PermissionGraph>,
     },
 }
 
@@ -348,16 +364,11 @@ impl ProtocolService {
                 );
             }
             CommandEvent::ProposeCrossPeersetChange { request, .. } => {
-                // todo: scrappy skip IPFS here and just make appropriate calls to blockchain
-                // todo: return when given change is accepted..
-                let scrappy_ipfs_cid_1 = "ipfs://cross-peerset-change-1";
-                let scrappy_ipfs_cid_2 = "ipfs://cross-peerset-change-2";
-
-                self.ethereum_facade.async_propose_cross_peerset_change(
+                self.ipfs_facade.async_save_permission_graphs(
                     request.peerset_address.clone(),
-                    scrappy_ipfs_cid_1.to_string(),
+                    request.new_permission_graph.clone().unwrap(),
                     request.other_peerset_address.clone(),
-                    scrappy_ipfs_cid_2.to_string(),
+                    request.other_permission_graph.clone().unwrap(),
                 );
             }
         }
@@ -478,7 +489,6 @@ impl ProtocolService {
                 match &peerset.transaction_state {
                     PeerSetTransactionState::None => {
                         peerset.transaction_state = PeerSetTransactionState::ChangeProposed {
-                            _votes: 1,
                             proposed_by,
                             permission_graph: None,
                             permission_graph_cid: new_permission_graph_cid.clone(),
@@ -501,14 +511,16 @@ impl ProtocolService {
                 ref peerset_address,
                 ref new_permission_graph_cid,
             } => {
-                let peerset = self.peerset_by_address(peerset_address)?;
-                peerset.permission_graph_cid = new_permission_graph_cid.clone();
-                if let Some(permission_graph) = peerset.permission_graph.take() {
-                    peerset.permission_graph = Some(permission_graph)
-                } else {
+                {
+                    let peerset = self.peerset_by_address(peerset_address)?;
+                    peerset.permission_graph_cid = new_permission_graph_cid.clone();
                     peerset.permission_graph = None;
+
+                    self.ipfs_facade.async_load_permission_graph(
+                        new_permission_graph_cid.clone(),
+                        peerset_address.clone(),
+                    );
                 }
-                peerset.transaction_state = PeerSetTransactionState::None;
 
                 if let Some(command) = self.pending_command.take() {
                     match command {
@@ -529,26 +541,61 @@ impl ProtocolService {
                             request: _,
                             response_channel,
                         } => {
+                            let peerset = self.peerset_by_address_imm(peerset_address)?;
+                            let other_proposed_cid = match &peerset.transaction_state {
+                                PeerSetTransactionState::CrossPeersetChangeProposed { other_peerset_cid, .. } => {
+                                    other_peerset_cid.clone()
+                                }
+                                _ => {
+                                    return Err(eyre!(
+                                        "PeerSetTransactionState should be CrossPeersetChangeProposed when a new change is accepted."
+                                    ))
+                                }
+                            };
+
                             response_channel
                                 .send(ProposeCrossPeersetChangeResponse {
-                                    proposed_cid: "ipfs://cross-peerset-change-1".to_string(),
-                                    other_proposed_cid: "ipfs://cross-peerset-change-2".to_string(),
+                                    proposed_cid: new_permission_graph_cid.clone(),
+                                    other_proposed_cid,
                                     accepted: true,
                                 })
                                 .unwrap();
                         }
                     }
                 }
+
+                let peerset = self.peerset_by_address(peerset_address)?;
+                peerset.transaction_state = PeerSetTransactionState::None;
             }
             BlockchainEvent::NewCrossPeersetChangeProposed {
                 peerset_address,
                 this_peerset_cid,
-                other_peerset_cid: _,
-                other_peerset_address: _,
+                other_peerset_cid,
+                other_peerset_address,
             } => {
+                let peerset = self.peerset_by_address(&peerset_address)?;
+
+                match &peerset.transaction_state {
+                    PeerSetTransactionState::None => {
+                        peerset.transaction_state =
+                            PeerSetTransactionState::CrossPeersetChangeProposed {
+                                _permission_graph: None,
+                                _permission_graph_cid: this_peerset_cid.clone(),
+                                _other_peerset_address: other_peerset_address,
+                                other_peerset_cid,
+                                _other_peerset_permission_graph: None,
+                            }
+                    }
+
+                    _ => {
+                        return Err(eyre!(
+                            "PeerSetTransactionState should be None when a new change is proposed."
+                        ))
+                    }
+                }
+
                 // approve if this change wasn't proposed by the same peer.
                 if self.pending_command.is_none() {
-                    info!("Approving the change!");
                     self.ethereum_facade
                         .async_approve_change(peerset_address, this_peerset_cid);
                 }
@@ -576,7 +623,7 @@ impl ProtocolService {
 
                 match &mut peerset.transaction_state {
                     PeerSetTransactionState::ChangeProposed {
-                        _votes: _, proposed_by, permission_graph, permission_graph_cid: new_permission_graph_cid,
+                        proposed_by, permission_graph, permission_graph_cid: new_permission_graph_cid,
                     } => {
                         info!("Reached {} {}", new_permission_graph_cid, cid_loaded);
                         info!("Peer_addr {}, proposed_by {}", peer_addr, proposed_by.blockchain_address);
@@ -620,6 +667,19 @@ impl ProtocolService {
                     }
                 }
             }
+            IPFSEvent::CrossPeersetPermissionGraphsSaved {
+                peerset_address,
+                this_peerset_cid,
+                other_peerset_address,
+                other_peerset_cid,
+            } => {
+                self.ethereum_facade.async_propose_cross_peerset_change(
+                    peerset_address.clone(),
+                    this_peerset_cid,
+                    other_peerset_address,
+                    other_peerset_cid,
+                );
+            }
         }
 
         Ok(())
@@ -629,6 +689,13 @@ impl ProtocolService {
         return self
             .peersets
             .get_mut(address)
+            .ok_or(eyre!("no peerset with given address"));
+    }
+
+    fn peerset_by_address_imm(&mut self, address: &str) -> Result<&PeerSet> {
+        return self
+            .peersets
+            .get(address)
             .ok_or(eyre!("no peerset with given address"));
     }
 }
@@ -641,7 +708,9 @@ mod tests {
     use crate::core::protocol::{
         BlockchainEvent, IPFSEvent, Peer, ProtocolFacade, ProtocolService,
     };
-    use crate::transport::grpc::command::{CreatePeersetRequest, PermissionGraph};
+    use crate::transport::grpc::command::{
+        CreatePeersetRequest, PermissionGraph, QueryPeersetsCiDsRequest,
+    };
 
     use crate::shared::shared;
 
@@ -691,7 +760,7 @@ mod tests {
             .create_peerset(CreatePeersetRequest {
                 name: "p1".to_string(),
                 peers: vec![PEER_ONE_ADDR.to_string(), PEER_TWO_ADDR.to_string()],
-                initial_permission_graph: Some(shared::demo_graph()),
+                initial_permission_graph: Some(shared::demo_graph_p1_v1()),
             })
             .await
             .expect("should succeed");
@@ -704,12 +773,14 @@ mod tests {
 
         // then
         let response = protocol_facade
-            .query_users_in_group("gr_1".to_string())
-            .await
-            .expect("response should be ready");
+            .query_peersets(QueryPeersetsCiDsRequest {})
+            .await;
 
-        assert_eq!(response._users.len(), 1);
-        assert_eq!(response._users[0].id, "ur_1".to_string());
+        assert_eq!(response.peerset_graphs.len(), 1);
+        assert_eq!(
+            response.peerset_graphs[0].permission_graph_cid,
+            "ipfs://test-cid-1"
+        )
     }
 
     pub struct IPFSFacadeMock {
@@ -752,7 +823,7 @@ mod tests {
             self.sender
                 .try_send(IPFSEvent::PermissionGraphLoaded {
                     cid,
-                    permission_graph: shared::demo_graph(),
+                    permission_graph: shared::demo_graph_p1_v1(),
                     peerset_address,
                 })
                 .expect("should succeed");
@@ -770,6 +841,16 @@ mod tests {
                     peerset_address,
                 })
                 .expect("should succeed");
+        }
+
+        fn async_save_permission_graphs(
+            &self,
+            _peerset_address: String,
+            _this_peerset_permission_graph: PermissionGraph,
+            _other_peerset_address: String,
+            _other_peerset_permission_graph: PermissionGraph,
+        ) {
+            todo!()
         }
     }
 }

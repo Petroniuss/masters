@@ -1,7 +1,6 @@
 use log::info;
 use organisation::core::ethereum::AddressToString;
 use organisation::core::grpc::connect;
-use organisation::core::peer;
 use organisation::core::peer::{
     peer_1_configuration, peer_2_configuration, peer_3_configuration, peer_4_configuration,
     run_with_configuration,
@@ -49,7 +48,7 @@ async fn within_peerset_change() -> Result<()> {
     let channel = connect(peer_2_conf.local_connection_str().as_str()).await;
     let mut client_2 = OrganisationDevClient::new(channel);
     let peerset_address = {
-        let permission_graph_p1_v1 = shared::demo_graph();
+        let permission_graph_p1_v1 = shared::demo_graph_p1_v1();
         let peers = vec![
             peer_1_conf.address().to_full_string(),
             peer_2_conf.address().to_full_string(),
@@ -81,26 +80,7 @@ async fn within_peerset_change() -> Result<()> {
 
     info!("Proposing a change by peer 2..");
     let peer_2_voting_response = {
-        let permission_graph_p1_v2 = {
-            let mut tmp = shared::demo_graph().clone();
-
-            tmp.edges.insert(
-                "ur_2".to_string(),
-                Edges {
-                    source: Some(Node {
-                        id: "ur_2".to_string(),
-                        r#type: NodeType::User as i32,
-                        peerset_address: None,
-                    }),
-                    edges: vec![Edge {
-                        destination_node_id: "gr_1".to_string(),
-                        permission: "belongs".to_string(),
-                    }],
-                },
-            );
-
-            tmp
-        };
+        let permission_graph_p1_v2 = shared::demo_graph_p1_v2();
 
         client_2
             .propose_change(tonic::Request::new(command::ProposeChangeRequest {
@@ -186,7 +166,7 @@ async fn cross_peerset_change() -> Result<()> {
     let channel = connect(peer_2_conf.local_connection_str().as_str()).await;
     let mut client_2 = OrganisationDevClient::new(channel);
     let peerset_1_address = {
-        let permission_graph_p1_v1 = shared::demo_graph();
+        let permission_graph_p1_v1 = shared::demo_graph_p1_v1();
         let peers = vec![
             peer_1_conf.address().to_full_string(),
             peer_2_conf.address().to_full_string(),
@@ -223,8 +203,7 @@ async fn cross_peerset_change() -> Result<()> {
     let channel = connect(peer_4_conf.local_connection_str().as_str()).await;
     let mut client_4 = OrganisationDevClient::new(channel);
     let peerset_2_address = {
-        // todo: once ipfs is implemented use a different graph.
-        let permission_graph_p1_v1 = shared::demo_graph();
+        let permission_graph_p1_v1 = shared::demo_graph_p1_v1();
         let peers = vec![
             peer_3_conf.address().to_full_string(),
             peer_4_conf.address().to_full_string(),
@@ -255,18 +234,28 @@ async fn cross_peerset_change() -> Result<()> {
     };
 
     info!("Proposing a cross-peerset change");
-    {
+    let cross_peerset_change_response = {
+        let new_permission_graph_ps_1 =
+            shared::demo_graph_p1_cross_peerset_v2(peerset_2_address.clone());
+        let new_permission_graph_ps_2 =
+            shared::demo_graph_p2_cross_peerset_v2(peerset_1_address.clone());
+
         client_1
             .propose_cross_peerset_change(tonic::Request::new(
                 command::ProposeCrossPeersetChangeRequest {
                     peerset_address: peerset_1_address,
-                    new_permission_graph: None,
+                    new_permission_graph: Some(new_permission_graph_ps_1),
                     other_peerset_address: peerset_2_address,
-                    other_permission_graph: None,
+                    other_permission_graph: Some(new_permission_graph_ps_2),
                 },
             ))
-            .await?;
-    }
+            .await?
+            .into_inner()
+    };
+    info!(
+        "Successfully proposed cross-peerset change: {:?}",
+        cross_peerset_change_response
+    );
 
     info!("Waiting for cross-peerset change to be acknowledged in peerset 1..");
     eventually_passes(
@@ -279,7 +268,8 @@ async fn cross_peerset_change() -> Result<()> {
                 .into_inner()
         },
         |response| {
-            response.peerset_graphs[0].permission_graph_cid == "ipfs://cross-peerset-change-1"
+            response.peerset_graphs[0].permission_graph_cid
+                == cross_peerset_change_response.proposed_cid
         },
         "current cid should be set by cross-peerset change",
     )
@@ -296,7 +286,8 @@ async fn cross_peerset_change() -> Result<()> {
                 .into_inner()
         },
         |response| {
-            response.peerset_graphs[0].permission_graph_cid == "ipfs://cross-peerset-change-2"
+            response.peerset_graphs[0].permission_graph_cid
+                == cross_peerset_change_response.other_proposed_cid
         },
         "current cid should be set by cross-peerset change",
     )

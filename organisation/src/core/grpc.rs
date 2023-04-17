@@ -1,10 +1,7 @@
-
 use crate::core::protocol::ProtocolFacade;
 use crate::errors::Result;
 
-use crate::transport::grpc::command::organisation_dev_server::{
-    OrganisationDev,
-};
+use crate::transport::grpc::command::organisation_dev_server::OrganisationDev;
 use crate::transport::grpc::command::{
     CreatePeersetRequest, CreatePeersetResponse, PeersetCreatedRequest, PeersetCreatedResponse,
     ProposeChangeRequest, ProposeChangeResponse, ProposeCrossPeersetChangeRequest,

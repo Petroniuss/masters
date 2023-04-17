@@ -30,6 +30,31 @@ message PeersetGraph {
   string permission_graph_cid = 2;
 }
 
+/*
+Charts showing:
+- estimated costs for each transaction:
+- how long it takes for a transaction to succeed,
+- throughput
+
+Two scenarios:
+- single peerset
+- cross-peerset (two peersets)
+
+Parametrized by number of peers (3, 5, 7, 10, 20, 40, ...)
+
+Environment:
+- local?
+- testnet? - let's try it and see what sort of problems we might run into.
+
+
+Question:
+- could we skip implementation of verification,
+
+Next Wednesday 13:00/14:00,
+Discuss master's thesis text with professor.
+ */
+
+
 /// Next steps:
 /// 1.E2E
 /// crate an integration test that runs multiple containers

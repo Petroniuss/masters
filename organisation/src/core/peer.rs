@@ -3,16 +3,13 @@ use crate::core::grpc::OrganisationDevService;
 use crate::core::protocol::ProtocolFacade;
 use crate::errors::Result;
 
-use crate::transport::grpc::command::organisation_dev_server::{
-    OrganisationDevServer,
-};
+use crate::transport::grpc::command::organisation_dev_server::OrganisationDevServer;
 
 use ethers::addressbook::Address;
 use ethers_signers::Signer;
 use log::info;
 
 use tonic::transport::Server;
-
 
 pub async fn run_with_configuration(configuration: Configuration) -> Result<()> {
     let addr = format!("[::1]:{}", configuration.port).parse()?;
