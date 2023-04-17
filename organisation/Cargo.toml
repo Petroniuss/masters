@@ -53,6 +53,9 @@ backoff = { version = "0.4.0", features = ["tokio"] }
 # ipfs
 ipfs-api-backend-hyper = { version = "0.6", features=["with-send-sync"] }
 
+# rand
+rand = "0.8.5"
+
 # testing
 [dev-dependencies]
 env_logger = "0.9.0"
@@ -74,4 +77,9 @@ test = false
 [[test]]
 path = "tests/atomic_commitment_integration_test.rs"
 name = "atomic_commitment_integration_test"
+test = false
+
+[[test]]
+path = "tests/single_peerset_benchmark.rs"
+name = "single_peerset_benchmark"
 test = false
