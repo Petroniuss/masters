@@ -297,6 +297,7 @@ impl ProtocolService {
         ipfs_facade: Box<dyn IPFSFacade>,
         ethereum_facade: Box<dyn EthereumFacade>,
     ) -> JoinHandle<()> {
+        let node_id = peer.blockchain_address.clone().parse::<Address>().unwrap();
         let mut protocol = ProtocolService {
             peer,
             ipfs_facade,
@@ -309,19 +310,19 @@ impl ProtocolService {
             loop {
                 let result = select! {
                     Some(blockchain_event) = blockchain_events_channel.recv() => {
-                        info!("Handling event: {:?}", blockchain_event);
+                        info!("{} Handling event: {:?},", node_id, blockchain_event);
                         protocol.handle_blockchain_event(blockchain_event)
                     }
                     Some(ipfs_event) = ipfs_events_channel.recv() => {
-                        info!("Handling event: {:?}", ipfs_event);
+                        info!("{} Handling event: {:?}", node_id, ipfs_event);
                         protocol.handle_ipfs_event(ipfs_event)
                     }
                     Some(query_event) = query_events_channel.recv() => {
-                        info!("Handling event: {:?}", query_event);
+                        info!("{} Handling event: {:?}", node_id, query_event);
                         protocol.handle_query_event(query_event)
                     }
                     Some(command_event) = command_events_channel.recv() => {
-                        info!("Handling event: {:?}", command_event);
+                        info!("{} Handling event: {:?}", node_id, command_event);
                         protocol.handle_command_event(command_event)
                     }
                 };

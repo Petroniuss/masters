@@ -9,7 +9,8 @@ use organisation::shared::shared::init;
 use organisation::transport::grpc::command;
 use organisation::transport::grpc::command::organisation_dev_client::OrganisationDevClient;
 use organisation::transport::grpc::command::{Edge, Edges, Node, NodeType, PermissionGraph};
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
+use tokio::time::sleep;
 use tonic::transport::Channel;
 
 /// This is a test used to generate results indicating throughput parametrized by number of peers:
@@ -19,15 +20,16 @@ use tonic::transport::Channel;
 async fn single_peerset_benchmark() -> Result<()> {
     init()?;
 
-    let mut peers = prepare_peers(3).await?;
+    let mut peers = prepare_peers(5).await?;
     let peerset_address = create_peerset(&mut peers).await?;
 
     // let's just measure how long it takes for 5 iterations
     let start = SystemTime::now();
     let mut graph = shared::demo_graph_p1_v1();
-    for _ in 0..5 {
+    for _ in 0..2 {
         graph = add_random_user_to_group(&graph);
         propose_transaction(&mut peers, &peerset_address, &graph).await?;
+        sleep(Duration::from_secs(5)).await;
     }
 
     let done = SystemTime::now();

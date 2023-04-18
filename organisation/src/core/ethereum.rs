@@ -192,8 +192,8 @@ impl EthereumClient {
             other_peerset_address,
         );
         let pending_tx = call.send().await.map_err(parse_contract_error)?;
-
         let _completed_tx = pending_tx.confirmations(1).await?;
+
         Ok(())
     }
 
@@ -201,13 +201,18 @@ impl EthereumClient {
         let middleware = self.ethereum_middleware.clone();
         let sc = PeerSetSmartContract::new(peerset_address.clone(), middleware);
 
+        info!("Approving transaction with {}", cid);
         let call = sc.submit_peer_vote(cid.clone(), true);
+        // some transactions were running out of gas - need to set a limit.
+        let call = call.gas(200000);
         let pending_tx = call.send().await.map_err(parse_contract_error)?;
 
-        let _completed_tx = pending_tx.confirmations(1).await?;
-        info!("Approved transaction is committed! {}", cid);
+        let completed_tx = pending_tx.confirmations(1).await?;
 
-        if let Some(_rec) = _completed_tx {}
+        if let Some(receipt) = completed_tx {
+            let status = receipt.status.unwrap();
+            info!("Approved change completed tx: {}, status: {}", receipt.transaction_hash, status);
+        }
 
         Ok(())
     }
