@@ -3,7 +3,8 @@ version: "3.3"
 services:
   anvil:
     container_name: masters-anvil
-    image: petroniuss/masters-anvil:latest
+    build:
+      context: ./anvil
     ports:
       - "8545:8545"
   ipfs:
