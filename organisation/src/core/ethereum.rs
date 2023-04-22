@@ -6,17 +6,24 @@ use crate::transport::ethereum::peer_set_smart_contract::{
 };
 use color_eyre::eyre;
 use color_eyre::eyre::eyre;
-use ethers::abi::{Token, Tokenizable};
+use ethers::abi::{AbiDecode, Token, Tokenizable};
 use ethers::contract::ContractError;
 use ethers::middleware::{NonceManagerMiddleware, SignerMiddleware};
 use ethers::providers::{Http, Provider, StreamExt};
-use ethers::types::Address;
+use ethers::types::Res::Call as ResCall;
+use ethers::types::{Address, CallResult, H256, U64};
+use ethers_providers::Middleware;
 use ethers_signers::{LocalWallet, Signer};
 use log::{info, warn};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use tokio::spawn;
 use tokio::sync::mpsc::Sender;
 
+// todo: verify that all transactions completed successfully and if not report it and decode error!
+// todo: make sure that we're returning results instead of unwrapping due!
+
+// this depends on chain
 pub static CHAIN_ID: u64 = 31337u64;
 
 /// EthereumFacade communicates asynchronously with `core::Protocol` through `tokio::sync::mpsc::channel`.
@@ -41,15 +48,21 @@ pub trait EthereumFacade: Send {
 pub struct EthereumFacadeImpl {
     pub sender: Sender<BlockchainEvent>,
     pub ethereum_client: Arc<EthereumClient>,
+    pub node_id: String,
 }
 
 impl EthereumFacadeImpl {
-    pub fn new(wallet: LocalWallet, sender: Sender<BlockchainEvent>) -> EthereumFacadeImpl {
-        let eth_client = crate_local_ethereum_client(wallet).unwrap();
+    pub fn new(
+        node_id: String,
+        wallet: LocalWallet,
+        sender: Sender<BlockchainEvent>,
+    ) -> EthereumFacadeImpl {
+        let eth_client = crate_local_ethereum_client(node_id.clone(), wallet).unwrap();
 
         Self {
             sender,
             ethereum_client: Arc::new(eth_client),
+            node_id,
         }
     }
 }
@@ -59,12 +72,16 @@ impl EthereumFacade for EthereumFacadeImpl {
         let sender = self.sender.clone();
         let client = self.ethereum_client.clone();
         spawn(async move {
-            let smart_contract = client
+            let result = client
                 .deploy_peer_set_smart_contract(peers.clone(), permission_graph_cid.clone())
-                .await
-                .expect("PeerSetSmartContract deployment should succeed");
+                .await;
 
-            info!("SC address: {}", smart_contract.address().to_full_string());
+            if let Err(e) = result {
+                warn!("{}", e);
+                return;
+            }
+
+            let smart_contract = result.unwrap();
             sender
                 .send(BlockchainEvent::NewPeersetCreated {
                     peers,
@@ -80,10 +97,11 @@ impl EthereumFacade for EthereumFacadeImpl {
         let address = peerset_address.parse::<Address>().unwrap();
         let client = self.ethereum_client.clone();
         spawn(async move {
-            client
-                .propose_change(address, permission_graph_cid)
-                .await
-                .unwrap();
+            let res = client.propose_change(address, permission_graph_cid).await;
+
+            if let Err(e) = res {
+                warn!("{}", e);
+            }
         });
     }
 
@@ -98,15 +116,18 @@ impl EthereumFacade for EthereumFacadeImpl {
         let other_peerset_address = other_peerset_address.parse::<Address>().unwrap();
         let client = self.ethereum_client.clone();
         spawn(async move {
-            client
+            let res = client
                 .propose_cross_peerset_change(
                     peerset_address,
                     this_peerset_cid,
                     other_peerset_address,
                     other_peerset_cid,
                 )
-                .await
-                .unwrap();
+                .await;
+
+            if let Err(e) = res {
+                warn!("{}", e);
+            }
         });
     }
 
@@ -114,10 +135,10 @@ impl EthereumFacade for EthereumFacadeImpl {
         let address = peerset_address.parse::<Address>().unwrap();
         let client = self.ethereum_client.clone();
         spawn(async move {
-            client
-                .approve_change(address, permission_graph_cid)
-                .await
-                .unwrap();
+            let res = client.approve_change(address, permission_graph_cid).await;
+            if let Err(e) = res {
+                warn!("{}", e);
+            }
         });
     }
 
@@ -136,6 +157,7 @@ type EthereumMiddleware = NonceManagerMiddleware<SignerMiddleware<Provider<Http>
 /// Interacts with ethereum through `transport` layer.
 pub struct EthereumClient {
     pub ethereum_middleware: Arc<EthereumMiddleware>,
+    pub node_id: String,
 }
 
 impl EthereumClient {
@@ -172,8 +194,33 @@ impl EthereumClient {
         let call = sc.propose_permission_graph_change(cid.clone());
         let pending_tx = call.send().await.map_err(parse_contract_error)?;
 
-        let _completed_tx = pending_tx.confirmations(1).await?;
-        Ok(())
+        info!("{} Proposing change with cid: {}..", self.node_id, cid);
+        let completed_tx = pending_tx.confirmations(1).await?;
+        if let Some(receipt) = completed_tx {
+            let status = receipt.status.unwrap();
+            let success = status == U64::one();
+            if success {
+                info!(
+                    "{} Proposed change with cid: {} - success: {}",
+                    self.node_id, cid, success,
+                );
+                Ok(())
+            } else {
+                let error_msg = self.trace_error(receipt.transaction_hash).await?;
+                Err(eyre!(
+                    "{} Proposing change with cid: {} - failed with: `{}`",
+                    self.node_id,
+                    cid,
+                    error_msg
+                ))
+            }
+        } else {
+            Err(eyre!(
+                "{} Proposed change with cid: {} - no transaction receipt",
+                self.node_id,
+                cid
+            ))
+        }
     }
 
     pub async fn propose_cross_peerset_change(
@@ -187,34 +234,94 @@ impl EthereumClient {
         let sc = PeerSetSmartContract::new(peerset_address, middleware);
 
         let call = sc.propose_cross_peerset_change(
-            this_peerset_cid,
-            other_peerset_cid,
+            this_peerset_cid.clone(),
+            other_peerset_cid.clone(),
             other_peerset_address,
         );
         let pending_tx = call.send().await.map_err(parse_contract_error)?;
-        let _completed_tx = pending_tx.confirmations(1).await?;
-
-        Ok(())
+        let completed_tx = pending_tx.confirmations(1).await?;
+        if let Some(receipt) = completed_tx {
+            let status = receipt.status.unwrap();
+            let success = status == U64::one();
+            if success {
+                info!(
+                    "{} Proposed cross-peerset change with cids: [{}, {}] - success",
+                    self.node_id, this_peerset_cid, other_peerset_cid,
+                );
+                Ok(())
+            } else {
+                let error_msg = self.trace_error(receipt.transaction_hash).await?;
+                Err(eyre!(
+                    "{} Proposed cross-peerset change with cids: [{}, {}] - failed with `{}`",
+                    self.node_id,
+                    this_peerset_cid,
+                    other_peerset_cid,
+                    error_msg
+                ))
+            }
+        } else {
+            Err(eyre!(
+                "{} Proposed cross-peerset change with cids: [{}, {}] - no receipt",
+                self.node_id,
+                this_peerset_cid,
+                other_peerset_cid,
+            ))
+        }
     }
 
     pub async fn approve_change(&self, peerset_address: Address, cid: CID) -> Result<()> {
         let middleware = self.ethereum_middleware.clone();
         let sc = PeerSetSmartContract::new(peerset_address.clone(), middleware);
 
-        info!("Approving transaction with {}", cid);
         let call = sc.submit_peer_vote(cid.clone(), true);
         // some transactions were running out of gas - need to set a limit.
         let call = call.gas(200000);
         let pending_tx = call.send().await.map_err(parse_contract_error)?;
 
-        let completed_tx = pending_tx.confirmations(1).await?;
+        info!("{} Approving change with cid: {}", self.node_id, cid);
 
+        let completed_tx = pending_tx.confirmations(1).await?;
         if let Some(receipt) = completed_tx {
             let status = receipt.status.unwrap();
-            info!("Approved change completed tx: {}, status: {}", receipt.transaction_hash, status);
+            let success = status == U64::one();
+            if success {
+                info!("{} Approved change with cid: {}", self.node_id, cid);
+            } else {
+                let error_msg = self.trace_error(receipt.transaction_hash).await?;
+                info!(
+                    "{} Approving change with cid: {}, failed with `{}`",
+                    self.node_id, cid, error_msg
+                );
+                // this error is expected when a transaction has already been approved.
+                if !error_msg.contains("There are no pending changes") {
+                    return Err(eyre!(
+                        "{} approving change with cid {} returned an unknown error: {}",
+                        self.node_id,
+                        cid,
+                        error_msg
+                    ));
+                }
+            }
+            Ok(())
+        } else {
+            Err(eyre!("no receipt!"))
         }
+    }
 
-        Ok(())
+    async fn trace_error(&self, tx_hash: H256) -> Result<String> {
+        let mut traces = self
+            .ethereum_middleware
+            .trace_transaction(tx_hash)
+            .await
+            .unwrap();
+
+        let trace = traces.remove(0);
+        return if let ResCall(CallResult { output, .. }) = trace.result.unwrap() {
+            let decoded_error = String::decode(&output[4..])?;
+            Ok(decoded_error)
+        } else {
+            Err(eyre!("failed to decode failure reason!"))
+        };
     }
 
     pub async fn current_version(&self, peerset_address: Address) -> Result<CID> {
@@ -229,7 +336,6 @@ impl EthereumClient {
         Ok(current_cid)
     }
 
-    // todo: NIT: code sending events should be part of the facade
     pub async fn subscribe_to_peerset_events(
         &self,
         peerset_address: Address,
@@ -284,12 +390,8 @@ impl EthereumClient {
                             .unwrap();
                     }
 
-                    PeerSetSmartContractEvents::PeerSetPermissionGraphVoteReceivedFilter(v) => {
-                        info!("PeerSetSmartContractEvent: {:?}, {}", v, &peerset_address);
-                    }
-                    PeerSetSmartContractEvents::PeerSetPermissionGraphChangeRejectedFilter(v) => {
-                        info!("PeerSetSmartContractEvent: {:?}, {}", v, &peerset_address)
-                    }
+                    PeerSetSmartContractEvents::PeerSetPermissionGraphVoteReceivedFilter(_v) => {}
+                    PeerSetSmartContractEvents::PeerSetPermissionGraphChangeRejectedFilter(_v) => {}
                 },
                 Err(err) => {
                     warn!(
@@ -315,23 +417,21 @@ impl AddressToString for Address {
 fn parse_contract_error(err: ContractError<EthereumMiddleware>) -> eyre::Report {
     return match err {
         ContractError::Revert(_) => {
-            let decoded = err.decode_revert::<String>();
-            eyre!(
-                "ContractError:Revert reason: {}",
-                decoded.unwrap_or("".to_string())
-            )
+            let decoded = err.decode_revert::<String>().unwrap_or("".to_string());
+            eyre!("ContractError:Revert reason: {}", decoded)
         }
         _ => eyre!("Unexpected error {:?}", err),
     };
 }
 
-pub fn crate_local_ethereum_client(wallet: LocalWallet) -> Result<EthereumClient> {
+pub fn crate_local_ethereum_client(node_id: String, wallet: LocalWallet) -> Result<EthereumClient> {
     let provider = create_local_http_provider()?;
     let middleware = create_local_ethereum_middleware(provider, wallet.clone())?;
     let middleware = Arc::new(middleware);
 
     let client = EthereumClient {
         ethereum_middleware: middleware.clone(),
+        node_id,
     };
 
     Ok(client)

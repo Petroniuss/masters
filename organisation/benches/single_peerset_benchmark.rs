@@ -1,4 +1,7 @@
-use futures::stream::iter;
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, SamplingMode};
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use itertools::Itertools;
 use log::info;
 use organisation::core::ethereum::AddressToString;
@@ -11,52 +14,69 @@ use organisation::transport::grpc::command;
 use organisation::transport::grpc::command::organisation_dev_client::OrganisationDevClient;
 use organisation::transport::grpc::command::{Edge, Edges, Node, NodeType, PermissionGraph};
 use std::time::{Duration, SystemTime};
+use tokio::runtime::{Handle, Runtime};
 use tokio::time::sleep;
 use tonic::transport::Channel;
 
-/// This is a test used to generate results indicating throughput parametrized by number of peers:
-/// - how long it takes for a transaction to succeed,
-/// let's just measure it manually and output results to a csv file and visualize that
-#[tokio::test]
-async fn single_peerset_benchmark() -> Result<()> {
-    init()?;
-    let peers_num = std::env::var("PEERS_NUM")
-        .unwrap_or("3".to_string())
-        .parse::<usize>()?;
-
-    let iterations = std::env::var("ITER_NUM")
-        .unwrap_or("3".to_string())
-        .parse::<usize>()?;
-
-    benchmark_iter(peers_num, iterations).await?;
-
-    Ok(())
-}
-
-async fn benchmark_iter(peers_num: usize, changes_num: usize) -> Result<()> {
-    let mut peers = prepare_peers(peers_num).await?;
-    let peerset_address = create_peerset(&mut peers).await?;
-
-    let start = SystemTime::now();
-    let mut graph = shared::demo_graph_p1_v1();
-    for _ in 0..changes_num {
-        graph = add_random_user_to_group(&graph);
-        propose_transaction(&mut peers, &peerset_address, &graph).await?;
+fn fibonacci(n: u64) -> u64 {
+    match n {
+        0 => 1,
+        1 => 1,
+        n => fibonacci(n - 1) + fibonacci(n - 2),
     }
-
-    let done = SystemTime::now();
-    info!("Time elapsed: {:?}", done.duration_since(start)?);
-    Ok(())
 }
+
+fn criterion_benchmark(c: &mut Criterion) {
+    init().unwrap();
+    let mut group = c.benchmark_group("BenchGroup");
+    group.sampling_mode(SamplingMode::Flat);
+
+    let rt = Runtime::new().unwrap();
+
+    // setup:
+    let mut peers = rt.block_on(prepare_peers(3)).unwrap();
+    let graph = shared::demo_graph_p1_v1();
+    let peerset_address = rt.block_on(create_peerset(&mut peers)).unwrap();
+    let mut peers = Rc::new(RefCell::new(peers));
+
+    group.bench_function("foo", |b| {
+        b.to_async(&rt)
+            .iter(|| propose_transaction(peers.clone(), &peerset_address, &graph));
+    });
+
+    group.finish()
+}
+
+criterion_group!(benches, criterion_benchmark);
+criterion_main!(benches);
+
+// async fn single_peerset_benchmark() -> Result<()> {
+//     let mut peers = prepare_peers(5).await?;
+//     let peerset_address = create_peerset(&mut peers).await?;
+//
+//     // let's just measure how long it takes for 5 iterations
+//     let start = SystemTime::now();
+//     let mut graph = shared::demo_graph_p1_v1();
+//     for _ in 0..2 {
+//         graph = add_random_user_to_group(&graph);
+//         propose_transaction(&mut peers, &peerset_address, &graph).await?;
+//         sleep(Duration::from_secs(5)).await;
+//     }
+//
+//     let done = SystemTime::now();
+//     info!("Time elapsed: {:?}", done.duration_since(start)?);
+//     Ok(())
+// }
 
 async fn propose_transaction(
-    peers: &mut Vec<BenchmarkedPeer>,
+    peers: Rc<RefCell<Vec<BenchmarkedPeer>>>,
     peerset_address: &str,
     permission_graph: &PermissionGraph,
 ) -> Result<()> {
-    let client_proposing_change = &mut peers[0].client;
+    let mut peer = peers.borrow_mut();
+    let client = &mut peer.get_mut(0).unwrap().client;
 
-    client_proposing_change
+    client
         .propose_change(tonic::Request::new(command::ProposeChangeRequest {
             peerset_address: peerset_address.to_string(),
             new_permission_graph: Some(permission_graph.clone()),
@@ -103,7 +123,6 @@ struct BenchmarkedPeer {
 }
 
 async fn create_peerset(peers: &mut Vec<BenchmarkedPeer>) -> Result<String> {
-    let start = SystemTime::now();
     let permission_graph_p1_v1 = shared::demo_graph_p1_v1();
     let peers_addresses = peers
         .iter()
@@ -120,8 +139,6 @@ async fn create_peerset(peers: &mut Vec<BenchmarkedPeer>) -> Result<String> {
         }))
         .await?
         .into_inner();
-    let done = SystemTime::now();
-    info!("Peerset created, time: {:?}", done.duration_since(start)?);
     info!("Created Peerset: {:?}", peerset_response);
 
     info!("Notifying other peers about created peerset..");

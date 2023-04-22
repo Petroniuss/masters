@@ -32,7 +32,7 @@ impl OrganisationDev for OrganisationDevService {
         &self,
         request: Request<CreatePeersetRequest>,
     ) -> std::result::Result<Response<CreatePeersetResponse>, Status> {
-        info!("Creating a peerset: {:?}", request);
+        // info!("Creating a peerset: {:?}", request);
 
         let result = self
             .protocol_facade
@@ -47,7 +47,7 @@ impl OrganisationDev for OrganisationDevService {
         &self,
         request: Request<PeersetCreatedRequest>,
     ) -> std::result::Result<Response<PeersetCreatedResponse>, Status> {
-        info!("Peerset created: {:?}", request);
+        // info!("Peerset created: {:?}", request);
 
         self.protocol_facade
             .peerset_created(request.into_inner())
@@ -61,7 +61,7 @@ impl OrganisationDev for OrganisationDevService {
         &self,
         request: Request<ProposeChangeRequest>,
     ) -> std::result::Result<Response<ProposeChangeResponse>, Status> {
-        info!("Proposing a change");
+        // info!("Proposing a change");
 
         let result = self
             .protocol_facade
@@ -74,7 +74,7 @@ impl OrganisationDev for OrganisationDevService {
         &self,
         request: Request<ProposeCrossPeersetChangeRequest>,
     ) -> std::result::Result<Response<ProposeCrossPeersetChangeResponse>, Status> {
-        info!("Proposing a cross-peerset change");
+        // info!("Proposing a cross-peerset change");
 
         let result = self
             .protocol_facade

@@ -61,6 +61,8 @@ rand = "0.8.5"
 env_logger = "0.9.0"
 test-log = "0.2.11"
 pretty_assertions = "1"
+criterion = { version = "0.4", features = ["html_reports", "async_tokio"] }
+csv = "1.2.1"
 
 [build-dependencies]
 tonic-build = { version = "0.8.3", optional = true }
@@ -68,6 +70,10 @@ tonic-build = { version = "0.8.3", optional = true }
 [features]
 default = []
 gen-proto = ["dep:tonic-build"]
+
+[[bench]]
+name = "single_peerset_benchmark"
+harness = false
 
 [[test]]
 path = "tests/ethereum_integration_tests.rs"
@@ -82,4 +88,9 @@ test = false
 [[test]]
 path = "tests/single_peerset_benchmark.rs"
 name = "single_peerset_benchmark"
+test = false
+
+[[test]]
+path = "tests/cross_peerset_benchmark.rs"
+name = "cross_peerset_benchmark"
 test = false

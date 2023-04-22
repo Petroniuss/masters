@@ -220,12 +220,12 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         uint256 approvedVotesCount = votingRound.positivePeerVotesCount;
         uint256 majority = peersCount() / 2;
 
-        if (rejectedVotesCount >= majority) {
-            return VotingState.REJECTED;
-        }
-
         if (approvedVotesCount > majority) {
             return VotingState.ACCEPTED;
+        }
+
+        if (rejectedVotesCount >= majority) {
+            return VotingState.REJECTED;
         }
 
         return VotingState.IN_PROGRESS;

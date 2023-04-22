@@ -10,11 +10,13 @@ use log::info;
 use tonic::transport::Server;
 
 pub async fn run_with_configuration(configuration: Configuration) -> Result<()> {
-    let addr = format!("[::1]:{}", configuration.port).parse()?;
+    let port = configuration.port;
+    let addr = format!("[::1]:{}", port.clone()).parse()?;
     info!("Running on: {}", addr);
 
     let wallet = local_wallet(&configuration.wallet_pk);
-    let protocol_facade = ProtocolFacade::new(wallet);
+    let node_id = format!("node-{}", port.clone());
+    let protocol_facade = ProtocolFacade::new(node_id, wallet);
     let organisation_service = OrganisationDevService::new(protocol_facade);
     let organisation_server = OrganisationDevServer::new(organisation_service);
 

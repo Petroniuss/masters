@@ -14,18 +14,15 @@ use std::time::{Duration, SystemTime};
 use tokio::time::sleep;
 use tonic::transport::Channel;
 
-/// This is a test used to generate results indicating throughput parametrized by number of peers:
-/// - how long it takes for a transaction to succeed,
-/// let's just measure it manually and output results to a csv file and visualize that
 #[tokio::test]
-async fn single_peerset_benchmark() -> Result<()> {
+async fn cross_peerset_benchmark() -> Result<()> {
     init()?;
     let peers_num = std::env::var("PEERS_NUM")
-        .unwrap_or("3".to_string())
+        .unwrap_or("2".to_string())
         .parse::<usize>()?;
 
     let iterations = std::env::var("ITER_NUM")
-        .unwrap_or("3".to_string())
+        .unwrap_or("1".to_string())
         .parse::<usize>()?;
 
     benchmark_iter(peers_num, iterations).await?;
@@ -35,13 +32,25 @@ async fn single_peerset_benchmark() -> Result<()> {
 
 async fn benchmark_iter(peers_num: usize, changes_num: usize) -> Result<()> {
     let mut peers = prepare_peers(peers_num).await?;
-    let peerset_address = create_peerset(&mut peers).await?;
+    let (mut peers_1, mut peers_2) = peers.split_at_mut(peers_num / 2);
+
+    let peerset_1_address = create_peerset(peers_1).await?;
+    let peerset_2_address = create_peerset(peers_2).await?;
 
     let start = SystemTime::now();
-    let mut graph = shared::demo_graph_p1_v1();
+    let mut new_permission_graph_ps_1 = shared::demo_graph_p1_v1();
+    let mut new_permission_graph_ps_2 = shared::demo_graph_p2_v1();
     for _ in 0..changes_num {
-        graph = add_random_user_to_group(&graph);
-        propose_transaction(&mut peers, &peerset_address, &graph).await?;
+        let new_permission_graph_ps_1 = add_random_user_to_group(&new_permission_graph_ps_1);
+        let new_permission_graph_ps_2 = add_random_user_to_group(&new_permission_graph_ps_2);
+        propose_transaction(
+            &mut peers,
+            &peerset_1_address,
+            &peerset_2_address,
+            new_permission_graph_ps_1.clone(),
+            new_permission_graph_ps_2.clone(),
+        )
+        .await?;
     }
 
     let done = SystemTime::now();
@@ -51,17 +60,24 @@ async fn benchmark_iter(peers_num: usize, changes_num: usize) -> Result<()> {
 
 async fn propose_transaction(
     peers: &mut Vec<BenchmarkedPeer>,
-    peerset_address: &str,
-    permission_graph: &PermissionGraph,
+    peerset_1_address: &str,
+    peerset_2_address: &str,
+    new_permission_graph_ps_1: PermissionGraph,
+    new_permission_graph_ps_2: PermissionGraph,
 ) -> Result<()> {
     let client_proposing_change = &mut peers[0].client;
 
     client_proposing_change
-        .propose_change(tonic::Request::new(command::ProposeChangeRequest {
-            peerset_address: peerset_address.to_string(),
-            new_permission_graph: Some(permission_graph.clone()),
-        }))
-        .await?;
+        .propose_cross_peerset_change(tonic::Request::new(
+            command::ProposeCrossPeersetChangeRequest {
+                peerset_address: peerset_1_address.to_string(),
+                new_permission_graph: Some(new_permission_graph_ps_1),
+                other_peerset_address: peerset_2_address.to_string(),
+                other_permission_graph: Some(new_permission_graph_ps_2),
+            },
+        ))
+        .await?
+        .into_inner();
 
     Ok(())
 }
@@ -102,7 +118,17 @@ struct BenchmarkedPeer {
     client: OrganisationDevClient<Channel>,
 }
 
-async fn create_peerset(peers: &mut Vec<BenchmarkedPeer>) -> Result<String> {
+async fn create_peersets(
+    peers_1: &mut Vec<BenchmarkedPeer>,
+    peers_2: &mut Vec<BenchmarkedPeer>,
+) -> Result<(String, String)> {
+    let peerset_1 = create_peerset(peers_1).await?;
+    let peerset_2 = create_peerset(peers_2).await?;
+
+    Ok((peerset_1, peerset_2))
+}
+
+async fn create_peerset(peers: &mut [BenchmarkedPeer]) -> Result<String> {
     let start = SystemTime::now();
     let permission_graph_p1_v1 = shared::demo_graph_p1_v1();
     let peers_addresses = peers

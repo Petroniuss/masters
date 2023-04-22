@@ -1,0 +1,5 @@
+peers_num, iterations, deployment_gas_used, deployment_time, changes_gas_used, changes_time
+2, 1, 3064800, 14.0901s, 2177039, 13.994755s
+3, 1, 3110245, 14.0976s, 722125, 13.983876s
+5, 1, 3201135, 14.0947s, 846374, 13.980051s
+10, 1, 3428360, 14.1076s, 1217671, 13.963897s

@@ -31,6 +31,47 @@ message PeersetGraph {
 }
 
 /*
+19.04.2023
+
+Next meeting Wednesday 15:00
+
+
+- Since last meeting I've added IPFS
+- Been working on creating benchmarks for proposing transactions parametrised by number of peers,
+  but haven't finished it yet.
+  For some reason after a couple of transactions, new transactions aren't accepted and peers just sit waiting for something.
+  Idk maybe:
+    - some events were lost somehow?
+    - maybe transactions that peers have sent failed, but peers haven't realised it.
+
+
+# todo: in order to make this local benchmark reliably we'd have to switch to miniing a block once every 10-15s.
+# currently a block is included right after a transaction is submitted.
+
+
+
+
+Two articles:
+- https://www.mdpi.com/2079-9292/12/6/1283#B25-electronics-12-01283 - blockchain + IPFS
+- DOI: 10.1109/BRAINS52497.2021.9569804
+
+
+
+
+Questions:
+- blockchain consts - compare with the article above,
+- performance comparison.
+
+
+Conclusions:
+- is this enough.
+
+
+Consider test platform.
+
+
+
+------
 Charts showing:
 - estimated costs for each transaction:
 - how long it takes for a transaction to succeed,
@@ -57,11 +98,10 @@ Discuss master's thesis text with professor.
 
 /// Next steps:
 /// 1.E2E
-/// crate an integration test that runs multiple containers
-/// peers on containers.
+/// crate an integration test that runs multiple peers
 
 /// 2. IPFS
-/// - this should be easy (1-2hours)
+/// - this should be (relatively) easy
 
 /// 3. Atomic Commitment
 /// - complete atomic commitment.
