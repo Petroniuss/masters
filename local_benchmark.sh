@@ -39,8 +39,8 @@ function single_peerset_benchmark() {
     docker-compose down
   }
 
-  export ITER_NUM="1"
-  for i in 2 3 5 10
+  export ITER_NUM="5"
+  for i in 2 3 5 8 10
   do
     benchmark_iter $i
   done
@@ -74,7 +74,6 @@ function cross_peerset_benchmark() {
     SUM=$(docker logs "$CONTAINER_ID" | grep "Gas used:" | awk '{ sum += $NF } END { print sum }')
     CHANGES_GAS=$((SUM - DEPLOYMENT_GAS))
 
-
     echo "Peers num: $PEERS_NUM"
     echo "Iterations: $ITER_NUM"
     echo "Deployment gas used: $DEPLOYMENT_GAS"
@@ -86,12 +85,11 @@ function cross_peerset_benchmark() {
     docker-compose down
   }
 
-  export ITER_NUM="1"
-  for i in 2 3 5 10
+  export ITER_NUM="5"
+  for i in 2 4 6 8 10
   do
     benchmark_iter $i
   done
 }
 
-single_peerset_benchmark
 cross_peerset_benchmark
