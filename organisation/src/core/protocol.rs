@@ -14,6 +14,7 @@ use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
 use itertools::Itertools;
 use log::info;
+use rand::Rng;
 use tokio::select;
 use tokio::sync::oneshot::error::RecvError;
 use tokio::task::JoinHandle;
@@ -25,7 +26,7 @@ pub struct ProtocolFacade {
 }
 
 impl ProtocolFacade {
-    pub fn new(wallet: LocalWallet) -> Self {
+    pub fn new(node_id: String, wallet: LocalWallet) -> Self {
         let (blockchain_sender, blockchain_receiver) = tokio::sync::mpsc::channel(100);
         let (ipfs_sender, ipfs_receiver) = tokio::sync::mpsc::channel(100);
         let (query_sender, query_receiver) = tokio::sync::mpsc::channel(100);
@@ -35,9 +36,11 @@ impl ProtocolFacade {
 
         let ipfs_facade = IPFSWrapper::new(ipfs_sender);
 
-        let ethereum_facade = EthereumFacadeImpl::new(wallet, blockchain_sender.clone());
+        let ethereum_facade =
+            EthereumFacadeImpl::new(node_id.clone(), wallet, blockchain_sender.clone());
 
         let _handle = ProtocolService::start_event_loop(
+            node_id,
             peer,
             blockchain_receiver,
             ipfs_receiver,
@@ -289,6 +292,7 @@ struct ProtocolService {
 
 impl ProtocolService {
     fn start_event_loop(
+        node_id: String,
         peer: Peer,
         mut blockchain_events_channel: tokio::sync::mpsc::Receiver<BlockchainEvent>,
         mut ipfs_events_channel: tokio::sync::mpsc::Receiver<IPFSEvent>,
@@ -297,6 +301,7 @@ impl ProtocolService {
         ipfs_facade: Box<dyn IPFSFacade>,
         ethereum_facade: Box<dyn EthereumFacade>,
     ) -> JoinHandle<()> {
+        let node_id = node_id.clone();
         let mut protocol = ProtocolService {
             peer,
             ipfs_facade,
@@ -309,19 +314,19 @@ impl ProtocolService {
             loop {
                 let result = select! {
                     Some(blockchain_event) = blockchain_events_channel.recv() => {
-                        info!("Handling event: {:?}", blockchain_event);
+                        info!("{} Handling event: {:?},", node_id, blockchain_event);
                         protocol.handle_blockchain_event(blockchain_event)
                     }
                     Some(ipfs_event) = ipfs_events_channel.recv() => {
-                        info!("Handling event: {:?}", ipfs_event);
+                        info!("{} Handling event: {:?}", node_id, ipfs_event);
                         protocol.handle_ipfs_event(ipfs_event)
                     }
                     Some(query_event) = query_events_channel.recv() => {
-                        info!("Handling event: {:?}", query_event);
+                        info!("{} Handling event: {:?}", node_id, query_event);
                         protocol.handle_query_event(query_event)
                     }
                     Some(command_event) = command_events_channel.recv() => {
-                        info!("Handling event: {:?}", command_event);
+                        info!("{} Handling event: {:?}", node_id, command_event);
                         protocol.handle_command_event(command_event)
                     }
                 };
@@ -739,7 +744,9 @@ mod tests {
 
         let peer = Peer::new(PEER_ONE_ADDR.to_string());
 
+        let node_id = "node-1".to_string();
         let _handle = ProtocolService::start_event_loop(
+            node_id,
             peer,
             blockchain_receiver,
             ipfs_receiver,

@@ -3,12 +3,15 @@ version: "3.3"
 services:
   anvil:
     container_name: masters-anvil
-    image: petroniuss/masters-anvil:latest
+    build:
+      context: ./anvil
     ports:
       - "8545:8545"
   ipfs:
     container_name: masters-ipfs
-    image: ipfs/kubo:latest
+    image: ipfs/kubo:v0.19.1
+    volumes:
+      - ./ipfs/container-init.d/001-profile.sh:/container-init.d/001-profile.sh
     ports:
       - "4001:4001"
       - "127.0.0.1:8080:8080"

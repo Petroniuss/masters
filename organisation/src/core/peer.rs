@@ -2,21 +2,21 @@ use crate::core::ethereum::local_wallet;
 use crate::core::grpc::OrganisationDevService;
 use crate::core::protocol::ProtocolFacade;
 use crate::errors::Result;
-
 use crate::transport::grpc::command::organisation_dev_server::OrganisationDevServer;
 
 use ethers::addressbook::Address;
 use ethers_signers::Signer;
 use log::info;
-
 use tonic::transport::Server;
 
 pub async fn run_with_configuration(configuration: Configuration) -> Result<()> {
-    let addr = format!("[::1]:{}", configuration.port).parse()?;
+    let port = configuration.port;
+    let addr = format!("[::1]:{}", port.clone()).parse()?;
     info!("Running on: {}", addr);
 
     let wallet = local_wallet(&configuration.wallet_pk);
-    let protocol_facade = ProtocolFacade::new(wallet);
+    let node_id = format!("node-{}", port.clone());
+    let protocol_facade = ProtocolFacade::new(node_id, wallet);
     let organisation_service = OrganisationDevService::new(protocol_facade);
     let organisation_server = OrganisationDevServer::new(organisation_service);
 
@@ -59,6 +59,25 @@ impl Configuration {
     }
 }
 
+pub fn peers_configurations(n: usize) -> Vec<Configuration> {
+    return all_peers_configurations()[0..n].to_vec();
+}
+
+pub fn all_peers_configurations() -> Vec<Configuration> {
+    return vec![
+        peer_1_configuration(),
+        peer_2_configuration(),
+        peer_3_configuration(),
+        peer_4_configuration(),
+        peer_5_configuration(),
+        peer_6_configuration(),
+        peer_7_configuration(),
+        peer_8_configuration(),
+        peer_9_configuration(),
+        peer_10_configuration(),
+    ];
+}
+
 pub fn peer_1_configuration() -> Configuration {
     return Configuration {
         port: "50051".to_string(),
@@ -91,5 +110,39 @@ pub fn peer_5_configuration() -> Configuration {
     return Configuration {
         port: "50055".to_string(),
         wallet_pk: "5096f8ad0d4fd8906fd9e574fc5bc9d1623d1c0ca257f3aca8a3bee68f9fda8b".to_string(),
+    };
+}
+pub fn peer_6_configuration() -> Configuration {
+    return Configuration {
+        port: "50056".to_string(),
+        wallet_pk: "43b66e96b89471b78a4aa44d7829221bf5d1e11acdf184361ec3068aeff415b5".to_string(),
+    };
+}
+
+pub fn peer_7_configuration() -> Configuration {
+    return Configuration {
+        port: "50057".to_string(),
+        wallet_pk: "e165ebb47d3530edd69d868dbd383757f046df7880778798ab390b3beca6240e".to_string(),
+    };
+}
+
+pub fn peer_8_configuration() -> Configuration {
+    return Configuration {
+        port: "50058".to_string(),
+        wallet_pk: "e26ed24b04743c9759b86717c36d50d2b18b3ab873739c6b7b83384fd8f68a57".to_string(),
+    };
+}
+
+pub fn peer_9_configuration() -> Configuration {
+    return Configuration {
+        port: "50059".to_string(),
+        wallet_pk: "264f72f5694f49e7bd89d1c6726515673baae555b05782deacfde877d0dd9681".to_string(),
+    };
+}
+
+pub fn peer_10_configuration() -> Configuration {
+    return Configuration {
+        port: "50060".to_string(),
+        wallet_pk: "e946f0d3fe8b819ec85a23236713f2c68267e40f5056cdca8325c5e20ece2285".to_string(),
     };
 }
