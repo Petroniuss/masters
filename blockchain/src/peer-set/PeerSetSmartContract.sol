@@ -4,9 +4,15 @@ pragma solidity ^0.8.17;
 import "./PeerSetSmartContractAPI.sol";
 
 contract PeerSetSmartContract is PeerSetSmartContractAPI {
+    // idea:
+    // see which option is better?
+    // have slightly slower computation to see who's part of peerset
+    // or save on storage just by saving an array without map.
     address[] public peersArray;
     string public currentCID;
 
+    // idea:
+    // can we swap that value with a single operation? aka pointer.
     VotingRound private votingRound;
 
     enum VotingType {
@@ -34,9 +40,10 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         string memory _peerSetPermissionGraphIPFSPointer
     ) {
         currentCID = _peerSetPermissionGraphIPFSPointer;
+        peersArray = new address[](_peers.length);
 
         for (uint256 i = 0; i < _peers.length; i++) {
-            peersArray.push(_peers[i]);
+            peersArray[i] = _peers[i];
         }
     }
 
@@ -74,6 +81,11 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         votingRound.otherPeerset = (PeerSetSmartContractAPI)(address(0));
         votingRound.peerVotesCount = 1;
         votingRound.positivePeerVotesCount = 1;
+
+        // idea:
+        // is it necessary, can't we assign an empty map here?
+        // My bet is that it is, but double check.
+        // It's impossible to zero a map in solidity without iterating over it.
         for (uint256 i = 0; i < peersArray.length; i++) {
             votingRound.voted[peersArray[i]] = false;
         }
@@ -274,6 +286,9 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         return isPeer(sender) || isPeerset(sender, peerset);
     }
 
+    // Question:
+    // Is it really the most efficient way to compare two strings? Why?
+    // Benchmarks: https://fravoll.github.io/solidity-patterns/string_equality_comparison.html
     function matchesVotingRoundCID(string calldata voteCID)
         private
         view
