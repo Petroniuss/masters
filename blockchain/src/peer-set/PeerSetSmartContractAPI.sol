@@ -39,8 +39,6 @@ interface PeerSetSmartContractAPI is UsingPeerSetEvents {
         view
         returns (string memory);
 
-    function isPeer(address peer) external view returns (bool);
-
     // cross-peerset
     // on change proposition:
     // - verify that there are no open voting rounds in both peersets,
