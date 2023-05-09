@@ -4,6 +4,10 @@ pragma solidity ^0.8.17;
 import "./PeerSetSmartContractAPI.sol";
 
 contract PeerSetSmartContract is PeerSetSmartContractAPI {
+    // idea:
+    // see which option is better?
+    // have slightly slower computation to see who's part of peerset
+    // or save on storage just by saving an array without map.
     address[] public peersArray;
     string public currentCID;
 
@@ -29,6 +33,7 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         mapping(address => bool) voted;
     }
 
+    // todo: creating a peerset should happen after peers agree to join a peerset.
     constructor(
         address[] memory _peers,
         string memory _peerSetPermissionGraphIPFSPointer
@@ -50,10 +55,11 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
 
     function proposePermissionGraphChange(
         string calldata proposedGraphIPFSPointer
-    ) external onlyPeer {
-        require(!isVotingOpen(), "There is already a pending request");
+    ) external {
+        assert(!isVotingOpen());
 
         address peerRequestingChange = msg.sender;
+        assert(isPeer(peerRequestingChange));
 
         emit PeerSetPermissionGraphChangeRequest(
             msg.sender, proposedGraphIPFSPointer
@@ -84,8 +90,9 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         string calldata thisPeersetProposedCID,
         string calldata otherPeersetProposedCID,
         PeerSetSmartContractAPI otherPeerset
-    ) external onlyPeerOrPeerset(otherPeerset) {
-        require(!isVotingOpen(), "There is already a pending request");
+    ) external {
+        assert(!isVotingOpen());
+        assert(isPeerOrPeerset(msg.sender, otherPeerset));
 
         // set transaction state
         votingRound.changeRequester = msg.sender;
@@ -121,12 +128,12 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         }
     }
 
-    function submitPeerVote(string calldata cid, bool vote) external onlyPeer {
-        require(isVotingOpen(), "There are no pending changes");
-        require(
-            matchesVotingRoundCID(cid), "Vote CID does not match pending CID"
-        );
-        require(votingRound.voted[msg.sender] == false, "Peer already voted");
+    function submitPeerVote(string calldata cid, bool vote) external {
+        assert(isPeer(msg.sender));
+        assert(isVotingOpen());
+        assert(matchesVotingRoundCID(cid));
+        // todo: remove this assertion to allow aborting hanging cross-peerset transactions.
+        assert(votingRound.voted[msg.sender] == false);
 
         emit PeerSetPermissionGraphVoteReceived(votingRound.pendingCID, vote);
         votingRound.voted[msg.sender] = true;
@@ -169,7 +176,11 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
     }
 
     // called when the other peerset has accepted the transaction
-    function otherPeersetAcceptedChange() external onlyPeerOrPeerset(votingRound.otherPeerset) returns (bool) {
+    function otherPeersetAcceptedChange() external returns (bool) {
+        assert(
+            isPeerset(msg.sender, votingRound.otherPeerset)
+        );
+
         // this peerset also accepts the change
         if (votingState() == VotingState.ACCEPTED) {
             emit PeerSetPermissionGraphUpdated(
@@ -186,7 +197,11 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         return false;
     }
 
-    function otherPeersetRejectedChange() external onlyPeerset {
+    function otherPeersetRejectedChange() external {
+        assert(
+            isPeerset(msg.sender, votingRound.otherPeerset)
+        );
+
         emit PeerSetPermissionGraphChangeRejected(
             votingRound.changeRequester, votingRound.pendingCID
         );
@@ -227,27 +242,6 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         }
     }
 
-    modifier onlyPeer() {
-        require(isPeer(msg.sender), "Caller is not a peer");
-        _;
-    }
-
-    modifier onlyPeerset() {
-        require(
-            isPeerset(msg.sender, votingRound.otherPeerset),
-            "Caller is not a peerset"
-        );
-        _;
-    }
-
-    modifier onlyPeerOrPeerset(PeerSetSmartContractAPI otherPeerset) {
-        require(
-            isPeerOrPeerset(msg.sender, otherPeerset),
-            "Caller must either be a peerset smart contract or a peer"
-        );
-        _;
-    }
-
     function isPeer(address _peer) public view returns (bool) {
         for (uint256 i = 0; i < peersArray.length; i++) {
             if (peersArray[i] == _peer) {
@@ -259,17 +253,17 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
     }
 
     function isPeerset(address sender, PeerSetSmartContractAPI peerset)
-        private
-        view
-        returns (bool)
+    private
+    view
+    returns (bool)
     {
         return sender == address(peerset) || sender == address(this);
     }
 
     function isPeerOrPeerset(address sender, PeerSetSmartContractAPI peerset)
-        private
-        view
-        returns (bool)
+    private
+    view
+    returns (bool)
     {
         return isPeer(sender) || isPeerset(sender, peerset);
     }
@@ -278,22 +272,11 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
     // Is it really the most efficient way to compare two strings? Why?
     // Benchmarks: https://fravoll.github.io/solidity-patterns/string_equality_comparison.html
     function matchesVotingRoundCID(string calldata voteCID)
-        private
-        view
-        returns (bool)
+    private
+    view
+    returns (bool)
     {
-        bytes memory voteCIDBytes = bytes(voteCID);
-        bytes memory pendingCIDBytes = bytes(votingRound.pendingCID);
-        uint length = voteCIDBytes.length;
-        if (length != pendingCIDBytes.length) {
-            return false;
-        }
-
-        for (uint i = 0; i < length; i++) {
-            if (voteCIDBytes[i] != pendingCIDBytes[i]) {
-                return false;
-            }
-        }
-        return true;
+        return keccak256(abi.encodePacked(voteCID))
+        == keccak256(abi.encodePacked(votingRound.pendingCID));
     }
 }
