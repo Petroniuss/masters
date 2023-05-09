@@ -282,7 +282,18 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         view
         returns (bool)
     {
-        return keccak256(abi.encodePacked(voteCID))
-        == keccak256(abi.encodePacked(votingRound.pendingCID));
+        bytes memory voteCIDBytes = bytes(voteCID);
+        bytes memory pendingCIDBytes = bytes(votingRound.pendingCID);
+        uint length = voteCIDBytes.length;
+        if (length != pendingCIDBytes.length) {
+            return false;
+        }
+
+        for (uint i = 0; i < length; i++) {
+            if (voteCIDBytes[i] != pendingCIDBytes[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 }
