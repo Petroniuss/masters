@@ -252,13 +252,14 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
     }
 
     function isPeer(address _peer) public view returns (bool) {
-        for (uint256 i = 0; i < peersArray.length; i++) {
-            if (peersArray[i] == _peer) {
-                return true;
-            }
-        }
-
-        return false;
+        return peers[_peer];
+//        for (uint256 i = 0; i < peersArray.length; i++) {
+//            if (peersArray[i] == _peer) {
+//                return true;
+//            }
+//        }
+//
+//        return false;
     }
 
     function isPeerset(address sender, PeerSetSmartContractAPI peerset)
