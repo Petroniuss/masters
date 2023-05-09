@@ -8,11 +8,10 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
     // see which option is better?
     // have slightly slower computation to see who's part of peerset
     // or save on storage just by saving an array without map.
+    mapping(address => bool) public peers;
     address[] public peersArray;
     string public currentCID;
 
-    // idea:
-    // can we swap that value with a single operation? aka pointer.
     VotingRound private votingRound;
 
     enum VotingType {
@@ -35,32 +34,34 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         mapping(address => bool) voted;
     }
 
+    // todo: creating a peerset should happen after peers agree to join a peerset.
     constructor(
         address[] memory _peers,
         string memory _peerSetPermissionGraphIPFSPointer
     ) {
         currentCID = _peerSetPermissionGraphIPFSPointer;
-        peersArray = new address[](_peers.length);
 
         for (uint256 i = 0; i < _peers.length; i++) {
-            peersArray[i] = _peers[i];
+            peers[_peers[i]] = true;
+            peersArray.push(_peers[i]);
         }
     }
 
     function currentPeerSetPermissionGraphIPFSPointer()
-        external
-        view
-        returns (string memory)
+    external
+    view
+    returns (string memory)
     {
         return currentCID;
     }
 
     function proposePermissionGraphChange(
         string calldata proposedGraphIPFSPointer
-    ) external onlyPeer {
+    ) external {
         require(!isVotingOpen(), "There is already a pending request");
 
         address peerRequestingChange = msg.sender;
+        require(isPeer(peerRequestingChange), "Caller is not a peer");
 
         emit PeerSetPermissionGraphChangeRequest(
             msg.sender, proposedGraphIPFSPointer
@@ -81,11 +82,6 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         votingRound.otherPeerset = (PeerSetSmartContractAPI)(address(0));
         votingRound.peerVotesCount = 1;
         votingRound.positivePeerVotesCount = 1;
-
-        // idea:
-        // is it necessary, can't we assign an empty map here?
-        // My bet is that it is, but double check.
-        // It's impossible to zero a map in solidity without iterating over it.
         for (uint256 i = 0; i < peersArray.length; i++) {
             votingRound.voted[peersArray[i]] = false;
         }
@@ -96,8 +92,12 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         string calldata thisPeersetProposedCID,
         string calldata otherPeersetProposedCID,
         PeerSetSmartContractAPI otherPeerset
-    ) external onlyPeerOrPeerset(otherPeerset) {
+    ) external {
         require(!isVotingOpen(), "There is already a pending request");
+        require(
+            isPeerOrPeerset(msg.sender, otherPeerset),
+            "Caller must either be a peerset smart contract or a peer"
+        );
 
         // set transaction state
         votingRound.changeRequester = msg.sender;
@@ -133,11 +133,13 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         }
     }
 
-    function submitPeerVote(string calldata cid, bool vote) external onlyPeer {
+    function submitPeerVote(string calldata cid, bool vote) external {
+        require(isPeer(msg.sender), "Caller is not a peer");
         require(isVotingOpen(), "There are no pending changes");
         require(
             matchesVotingRoundCID(cid), "Vote CID does not match pending CID"
         );
+        // todo: remove this assertion to allow aborting hanging cross-peerset transactions.
         require(votingRound.voted[msg.sender] == false, "Peer already voted");
 
         emit PeerSetPermissionGraphVoteReceived(votingRound.pendingCID, vote);
@@ -168,7 +170,7 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
             } else if (vType == VotingType.CROSS_PEERSET_VOTING) {
                 if (state == VotingState.ACCEPTED) {
                     bool accepted =
-                        votingRound.otherPeerset.otherPeersetAcceptedChange();
+                    votingRound.otherPeerset.otherPeersetAcceptedChange();
                     if (accepted) {
                         this.otherPeersetAcceptedChange();
                     }
@@ -181,7 +183,12 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
     }
 
     // called when the other peerset has accepted the transaction
-    function otherPeersetAcceptedChange() external onlyPeerOrPeerset(votingRound.otherPeerset) returns (bool) {
+    function otherPeersetAcceptedChange() external returns (bool) {
+        require(
+            isPeerset(msg.sender, votingRound.otherPeerset),
+            "Caller is not a peerset"
+        );
+
         // this peerset also accepts the change
         if (votingState() == VotingState.ACCEPTED) {
             emit PeerSetPermissionGraphUpdated(
@@ -198,7 +205,12 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         return false;
     }
 
-    function otherPeersetRejectedChange() external onlyPeerset {
+    function otherPeersetRejectedChange() external {
+        require(
+            isPeerset(msg.sender, votingRound.otherPeerset),
+            "Caller is not a peerset"
+        );
+
         emit PeerSetPermissionGraphChangeRejected(
             votingRound.changeRequester, votingRound.pendingCID
         );
@@ -208,7 +220,7 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
 
     function votingState() public view returns (VotingState) {
         uint256 rejectedVotesCount =
-            votingRound.peerVotesCount - votingRound.positivePeerVotesCount;
+        votingRound.peerVotesCount - votingRound.positivePeerVotesCount;
         uint256 approvedVotesCount = votingRound.positivePeerVotesCount;
         uint256 majority = peersCount() / 2;
 
@@ -237,27 +249,6 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         } else {
             return VotingType.WITHIN_PEERSET_VOTING;
         }
-    }
-
-    modifier onlyPeer() {
-        require(isPeer(msg.sender), "Caller is not a peer");
-        _;
-    }
-
-    modifier onlyPeerset() {
-        require(
-            isPeerset(msg.sender, votingRound.otherPeerset),
-            "Caller is not a peerset"
-        );
-        _;
-    }
-
-    modifier onlyPeerOrPeerset(PeerSetSmartContractAPI otherPeerset) {
-        require(
-            isPeerOrPeerset(msg.sender, otherPeerset),
-            "Caller must either be a peerset smart contract or a peer"
-        );
-        _;
     }
 
     function isPeer(address _peer) public view returns (bool) {
@@ -294,19 +285,7 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         view
         returns (bool)
     {
-        bytes memory voteCIDBytes = bytes(voteCID);
-        bytes memory pendingCIDBytes = bytes(votingRound.pendingCID);
-        uint length = voteCIDBytes.length;
-        if (length != pendingCIDBytes.length) {
-            return false;
-        }
-
-        for (uint i = 0; i < length; i++) {
-            if (voteCIDBytes[i] != pendingCIDBytes[i]) {
-                return false;
-            }
-        }
-
-        return true;
+        return keccak256(abi.encodePacked(voteCID))
+        == keccak256(abi.encodePacked(votingRound.pendingCID));
     }
 }
