@@ -8,6 +8,7 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
     // see which option is better?
     // have slightly slower computation to see who's part of peerset
     // or save on storage just by saving an array without map.
+    mapping(address => bool) public peers;
     address[] public peersArray;
     string public currentCID;
 
@@ -41,6 +42,7 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         currentCID = _peerSetPermissionGraphIPFSPointer;
 
         for (uint256 i = 0; i < _peers.length; i++) {
+            peers[_peers[i]] = true;
             peersArray.push(_peers[i]);
         }
     }
@@ -250,13 +252,7 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
     }
 
     function isPeer(address _peer) public view returns (bool) {
-        for (uint256 i = 0; i < peersArray.length; i++) {
-            if (peersArray[i] == _peer) {
-                return true;
-            }
-        }
-
-        return false;
+        return peers[_peer];
     }
 
     function isPeerset(address sender, PeerSetSmartContractAPI peerset)

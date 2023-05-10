@@ -87,17 +87,17 @@ CommonBase
     "https://ipfs.io/ipfs/Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu";
 
     constructor() {
-        peers = new address[](10);
+        peers = new address[](2);
         peers[0] = ADDRESS_PEER_1;
         peers[1] = ADDRESS_PEER_2;
-        peers[2] = ADDRESS_PEER_3;
-        peers[3] = ADDRESS_PEER_4;
-        peers[4] = ADDRESS_PEER_5;
-        peers[5] = ADDRESS_PEER_6;
-        peers[6] = ADDRESS_PEER_7;
-        peers[7] = ADDRESS_PEER_8;
-        peers[8] = ADDRESS_PEER_9;
-        peers[9] = ADDRESS_PEER_10;
+//        peers[2] = ADDRESS_PEER_3;
+//        peers[3] = ADDRESS_PEER_4;
+//        peers[4] = ADDRESS_PEER_5;
+//        peers[5] = ADDRESS_PEER_6;
+//        peers[6] = ADDRESS_PEER_7;
+//        peers[7] = ADDRESS_PEER_8;
+//        peers[8] = ADDRESS_PEER_9;
+//        peers[9] = ADDRESS_PEER_10;
 
         peerSetContract = new PeerSetSmartContract(
             peers, initialGraph
