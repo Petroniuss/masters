@@ -56,10 +56,10 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
     function proposePermissionGraphChange(
         string calldata proposedGraphIPFSPointer
     ) external {
-        assert(!isVotingOpen());
+        require(!isVotingOpen(), "There is already a pending request");
 
         address peerRequestingChange = msg.sender;
-        assert(isPeer(peerRequestingChange));
+        require(isPeer(peerRequestingChange), "Caller is not a peer");
 
         emit PeerSetPermissionGraphChangeRequest(
             msg.sender, proposedGraphIPFSPointer
@@ -91,8 +91,11 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
         string calldata otherPeersetProposedCID,
         PeerSetSmartContractAPI otherPeerset
     ) external {
-        assert(!isVotingOpen());
-        assert(isPeerOrPeerset(msg.sender, otherPeerset));
+        require(!isVotingOpen(), "There is already a pending request");
+        require(
+            isPeerOrPeerset(msg.sender, otherPeerset),
+            "Caller must either be a peerset smart contract or a peer"
+        );
 
         // set transaction state
         votingRound.changeRequester = msg.sender;
@@ -129,11 +132,13 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
     }
 
     function submitPeerVote(string calldata cid, bool vote) external {
-        assert(isPeer(msg.sender));
-        assert(isVotingOpen());
-        assert(matchesVotingRoundCID(cid));
+        require(isPeer(msg.sender), "Caller is not a peer");
+        require(isVotingOpen(), "There are no pending changes");
+        require(
+            matchesVotingRoundCID(cid), "Vote CID does not match pending CID"
+        );
         // todo: remove this assertion to allow aborting hanging cross-peerset transactions.
-        assert(votingRound.voted[msg.sender] == false);
+        require(votingRound.voted[msg.sender] == false, "Peer already voted");
 
         emit PeerSetPermissionGraphVoteReceived(votingRound.pendingCID, vote);
         votingRound.voted[msg.sender] = true;
@@ -177,8 +182,9 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
 
     // called when the other peerset has accepted the transaction
     function otherPeersetAcceptedChange() external returns (bool) {
-        assert(
-            isPeerset(msg.sender, votingRound.otherPeerset)
+        require(
+            isPeerset(msg.sender, votingRound.otherPeerset),
+            "Caller is not a peerset"
         );
 
         // this peerset also accepts the change
@@ -198,8 +204,9 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
     }
 
     function otherPeersetRejectedChange() external {
-        assert(
-            isPeerset(msg.sender, votingRound.otherPeerset)
+        require(
+            isPeerset(msg.sender, votingRound.otherPeerset),
+            "Caller is not a peerset"
         );
 
         emit PeerSetPermissionGraphChangeRejected(
