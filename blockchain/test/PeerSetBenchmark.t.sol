@@ -18,14 +18,13 @@ contract PeerSetBenchmarkTest is Test, UsingDeployedPeerSetWithTenPeersTest {
         peerSetContract.proposePermissionGraphChange(proposedGraph);
 
         // when change is validated
-        vm.prank(ADDRESS_PEER_10);
+        vm.prank(ADDRESS_PEER_2t a);
         peerSetContract.submitPeerVote(proposedGraph, true);
 
 //        // when change is validated
 //        vm.prank(ADDRESS_PEER_3);
 //        peerSetContract.submitPeerVote(proposedGraph, true);
-
-        // then change is applied
+//
 //        string memory latestGraph =
 //            peerSetContract.currentPeerSetPermissionGraphIPFSPointer();
 //        assertEq(latestGraph, proposedGraph);
