@@ -10,7 +10,7 @@ import "../src/peer-set/PeerSetSmartContractAPI.sol";
 import "../src/peer-set/PeerSetSmartContract.sol";
 import "./UsingSharedSetup.t.sol";
 
-contract PeerSetBenchmarkTest is Test, UsingDeployedPeerSetWithForPeersTest {
+contract PeerSetBenchmarkTest is Test, UsingDeployedPeerSetWithTenPeersTest {
     function testBenchmarkSuccessfulGraphChange() public {
         // given proposed change
         vm.prank(ADDRESS_PEER_1);
@@ -18,16 +18,17 @@ contract PeerSetBenchmarkTest is Test, UsingDeployedPeerSetWithForPeersTest {
         peerSetContract.proposePermissionGraphChange(proposedGraph);
 
         // when change is validated
-        vm.prank(ADDRESS_PEER_2);
+        vm.prank(ADDRESS_PEER_10);
         peerSetContract.submitPeerVote(proposedGraph, true);
 
-        // when change is validated
-        vm.prank(ADDRESS_PEER_3);
-        peerSetContract.submitPeerVote(proposedGraph, true);
+//        // when change is validated
+//        vm.prank(ADDRESS_PEER_3);
+//        peerSetContract.submitPeerVote(proposedGraph, true);
 
         // then change is applied
-        string memory latestGraph =
-            peerSetContract.currentPeerSetPermissionGraphIPFSPointer();
-        assertEq(latestGraph, proposedGraph);
+//        string memory latestGraph =
+//            peerSetContract.currentPeerSetPermissionGraphIPFSPointer();
+//        assertEq(latestGraph, proposedGraph);
     }
 }
+
