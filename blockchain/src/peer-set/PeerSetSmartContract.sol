@@ -4,6 +4,10 @@ pragma solidity ^0.8.17;
 import "./PeerSetSmartContractAPI.sol";
 
 contract PeerSetSmartContract is PeerSetSmartContractAPI {
+    // idea:
+    // see which option is better?
+    // have slightly slower computation to see who's part of peerset
+    // or save on storage just by saving an array without map.
     mapping(address => bool) public peers;
     address[] public peersArray;
     string public currentCID;
@@ -44,9 +48,9 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
     }
 
     function currentPeerSetPermissionGraphIPFSPointer()
-        external
-        view
-        returns (string memory)
+    external
+    view
+    returns (string memory)
     {
         return currentCID;
     }
@@ -166,7 +170,7 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
             } else if (vType == VotingType.CROSS_PEERSET_VOTING) {
                 if (state == VotingState.ACCEPTED) {
                     bool accepted =
-                        votingRound.otherPeerset.otherPeersetAcceptedChange();
+                    votingRound.otherPeerset.otherPeersetAcceptedChange();
                     if (accepted) {
                         this.otherPeersetAcceptedChange();
                     }
@@ -216,7 +220,7 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
 
     function votingState() public view returns (VotingState) {
         uint256 rejectedVotesCount =
-            votingRound.peerVotesCount - votingRound.positivePeerVotesCount;
+        votingRound.peerVotesCount - votingRound.positivePeerVotesCount;
         uint256 approvedVotesCount = votingRound.positivePeerVotesCount;
         uint256 majority = peersCount() / 2;
 
@@ -252,27 +256,30 @@ contract PeerSetSmartContract is PeerSetSmartContractAPI {
     }
 
     function isPeerset(address sender, PeerSetSmartContractAPI peerset)
-        private
-        view
-        returns (bool)
+    private
+    view
+    returns (bool)
     {
         return sender == address(peerset) || sender == address(this);
     }
 
     function isPeerOrPeerset(address sender, PeerSetSmartContractAPI peerset)
-        private
-        view
-        returns (bool)
+    private
+    view
+    returns (bool)
     {
         return isPeer(sender) || isPeerset(sender, peerset);
     }
 
+    // Question:
+    // Is it really the most efficient way to compare two strings? Why?
+    // Benchmarks: https://fravoll.github.io/solidity-patterns/string_equality_comparison.html
     function matchesVotingRoundCID(string calldata voteCID)
-        private
-        view
-        returns (bool)
+    private
+    view
+    returns (bool)
     {
         return keccak256(abi.encodePacked(voteCID))
-            == keccak256(abi.encodePacked(votingRound.pendingCID));
+        == keccak256(abi.encodePacked(votingRound.pendingCID));
     }
 }

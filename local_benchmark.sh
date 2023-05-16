@@ -3,7 +3,7 @@
 
 function single_peerset_benchmark() {
   BENCHMARK_FILE=./benchmark/single_peerset_local.csv
-  echo "peers_num, iterations, deployment_gas_used, deployment_time, changes_gas_used, changes_time" > $BENCHMARK_FILE
+#  echo "peers_num, iterations, deployment_gas_used, deployment_time, changes_gas_used, changes_time" > $BENCHMARK_FILE
 
   LOG_FILE="output.log"
   function benchmark_iter() {
@@ -39,8 +39,8 @@ function single_peerset_benchmark() {
     docker-compose down
   }
 
-  export ITER_NUM="5"
-  for i in 2 3 5 8 10
+  export ITER_NUM="1"
+  for i in 2 3 4 5 6 7 8 9 10
   do
     benchmark_iter $i
   done
@@ -48,7 +48,7 @@ function single_peerset_benchmark() {
 
 function cross_peerset_benchmark() {
   BENCHMARK_FILE=./benchmark/cross_peerset_local.csv
-  echo "peers_num, iterations, deployment_gas_used, deployment_time, changes_gas_used, changes_time" > $BENCHMARK_FILE
+#  echo "peers_num, iterations, deployment_gas_used, deployment_time, changes_gas_used, changes_time" > $BENCHMARK_FILE
 
   LOG_FILE="output.log"
   function benchmark_iter() {
@@ -85,11 +85,26 @@ function cross_peerset_benchmark() {
     docker-compose down
   }
 
-  export ITER_NUM="5"
-  for i in 2 4 6 8 10
+  export ITER_NUM="1"
+  for i in 2 3 4 5 6 7 8 9 10
   do
     benchmark_iter $i
   done
 }
 
-cross_peerset_benchmark
+
+BENCHMARK_FILE=./benchmark/single_peerset_local.csv
+echo "peers_num, iterations, deployment_gas_used, deployment_time, changes_gas_used, changes_time" > $BENCHMARK_FILE
+for i in {1..10}
+do
+  single_peerset_benchmark
+done
+
+#for i in {1..10}
+#do
+#  BENCHMARK_FILE=./benchmark/cross_peerset_local.csv
+#  echo "peers_num, iterations, deployment_gas_used, deployment_time, changes_gas_used, changes_time" > $BENCHMARK_FILE
+#  cross_peerset_benchmark
+#done
+#
+#
