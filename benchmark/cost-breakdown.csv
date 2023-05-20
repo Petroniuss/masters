@@ -1,0 +1,24 @@
+peers, deployment_gas, propose_change, approve_success, approve_failed
+3, 1623290, 202566, 89608, 27320
+
+peers, deployment_gas, propose_change, approve, approve_success, approve_failed
+4, 1668735, 207419, 72633, 89608, 27320
+
+peers, deployment_gas, propose_change, approve, approve_success, approve_failed, approve_failed
+5, 1714180, 212272, 72633, 89608, 27320, 27320
+
+peers, deployment_gas, propose_change, approve, approve, approve_success, approve_failed, approve_failed
+6, 1759637, 217125, 72633, 72633, 89608, 27320, 27320
+
+peers, deployment_gas, propose_change, approve, approve, approve_success, approve_failed, approve_failed, approve_failed
+7, 1805082, 221978, 72633, 72633, 89608, 27320, 27320, 27320
+
+peers, deployment_gas, propose_change, approve, approve, approve, approve_success, approve_failed, approve_failed, approve_failed
+8, 1850527, 226831, 72633, 72633, 72633, 89608, 27320, 27320, 27320
+
+peers, deployment_gas, propose_change, approve, approve, approve, approve_success, approve_failed, approve_failed, approve_failed, approve_failed
+9, 1895972, 231684, 72633, 72633, 72633, 89608, 27320, 27320, 27320, 27320
+
+peers, deployment_gas, propose_change, approve, approve, approve, approve, approve_success, approve_failed, approve_failed, approve_failed, approve_failed
+10, 1941417, 236537, 72633, 72633, 72633, 72633, 89608, 27320, 27320, 27320, 27320
+
